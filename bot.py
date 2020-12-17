@@ -23,11 +23,11 @@ tidal_session.login(os.getenv("TIDAL_UNAME"), os.getenv("TIDAL_PWD"))
 bot = discord.ext.commands.Bot(command_prefix=".")
 
 
-def play_tidal(voice: discord.VoiceClient, search_str: str = None) -> None:
+async def play_tidal(voice: discord.VoiceClient, search_str: str = None) -> None:
     voice.play(discord.FFmpegPCMAudio(tidal_session.get_track_url(tidal_session.search("track", search_str).tracks[0].id)))
 
 
-def play_yt(voice: VoiceClient, url: str = None, ) -> None:
+async def play_yt(voice: VoiceClient, url: str = None, ) -> None:
     YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
     FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 
@@ -62,9 +62,6 @@ async def play(ctx: discord.ext.commands.Context, source: str, *args) -> None:
         await ctx.message.author.voice.channel.connect()
         voice_channel = discord.utils.get(bot.voice_clients, guild=ctx.guild)
 
-
-    print(voice_channel)
-
     voice_channel.stop()
 
     target = ""
@@ -72,15 +69,13 @@ async def play(ctx: discord.ext.commands.Context, source: str, *args) -> None:
         target += arg + " "
 
     target = target[0:-1]
-    
-    print(source)
 
     if (source == "t" or source == "tidal"):
         await play_tidal(voice_channel, target)
     elif(source == "y" or source == "youtube"):
         await play_yt(voice_channel, target)
     else:
-        ctx.message.channel.send("Unknown source")
+        await ctx.message.channel.send("Unknown source")
         
     
 
