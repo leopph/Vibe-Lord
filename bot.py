@@ -41,11 +41,14 @@ async def play_yt(voice: VoiceClient, url: str = None, ) -> None:
     with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
         info = ydl.extract_info(url, download=False)
     URL = info['formats'][0]['url']
+
     voice.play(discord.FFmpegPCMAudio(URL, **FFMPEG_OPTIONS))
 
+    return info["title"]
 
 
-@bot.command(name="dc", help="Disconnect from voice")
+
+@bot.command(name="disconnect", aliases=["dc"], help="Disconnect from voice")
 async def disconnect(ctx: discord.ext.commands.Context) -> None:
     for voice in bot.voice_clients:
         if (voice.is_connected()):
@@ -53,7 +56,7 @@ async def disconnect(ctx: discord.ext.commands.Context) -> None:
 
 
 
-@bot.command(name="stop", help="Stop playback if currently playing")
+@bot.command(name="stop", aliases=["s"], help="Stop playback if currently playing")
 async def stop(ctx: discord.ext.commands.Context) -> None:
     voice_channel = discord.utils.get(bot.voice_clients, guild=ctx.guild)
     if voice_channel:
@@ -80,7 +83,7 @@ async def play(ctx: discord.ext.commands.Context, source: str, *args) -> None:
     if (source == "t" or source == "tidal"):
         await ctx.message.channel.send(await play_tidal(voice_channel, target))
     elif(source == "y" or source == "youtube"):
-        await play_yt(voice_channel, target)
+        await ctx.message.channel.send(await play_yt(voice_channel, target))
     else:
         await ctx.message.channel.send("Unknown source")
         
