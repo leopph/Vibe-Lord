@@ -54,7 +54,7 @@ async def stop(ctx: discord.ext.commands.Context) -> None:
 
 
 
-@bot.command(name="play", help="Play track from the parameter source")
+@bot.command(name="play", aliases=["p"], help="Play track from the parameter source")
 async def play(ctx: discord.ext.commands.Context, source: str, *args) -> None:
     voice_channel = discord.utils.get(bot.voice_clients, guild=ctx.guild)
 
