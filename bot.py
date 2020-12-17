@@ -1,4 +1,5 @@
 import os
+import sys
 from discord.abc import Connectable
 from discord.channel import VoiceChannel
 from discord.voice_client import VoiceClient
@@ -34,7 +35,7 @@ async def play_tidal(voice: discord.VoiceClient, search_str: str = None) -> None
     return artists[0:-2] + " - " + track.name
 
 
-async def play_yt(voice: VoiceClient, url: str = None, ) -> None:
+async def play_yt(voice: VoiceClient, url: str = None, ) -> str:
     YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
     FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 
@@ -85,9 +86,18 @@ async def play(ctx: discord.ext.commands.Context, source: str, *args) -> None:
     elif(source == "y" or source == "youtube"):
         await ctx.message.channel.send(await play_yt(voice_channel, target))
     else:
-        await ctx.message.channel.send("Unknown source")
-        
-    
+        await ctx.message.channel.send(f"Unknown source: \"{source}\"")
+
+
+@bot.command(name="f", help="Pay respects.")
+async def ef(ctx: discord.ext.commands.Context) -> None:
+    pass
+
+
+@bot.event
+async def on_command_error(ctx: discord.ext.commands.Context, error, *args, **kwargs):
+    await ctx.message.channel.send(f"mi a faszom ez a geci")
+
 
 
 bot.run(TOKEN)
