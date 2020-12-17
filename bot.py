@@ -95,7 +95,7 @@ async def play(ctx: discord.ext.commands.Context, source: str, *args) -> None:
 
 @bot.command(name="f", help="Pay respects.")
 async def ef(ctx: discord.ext.commands.Context) -> None:
-    pass
+    await ctx.message.channel.send(ctx.message.author.name + ", I pay my respects.")
 
 
 
