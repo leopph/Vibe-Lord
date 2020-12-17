@@ -48,6 +48,10 @@ async def play_yt(voice: VoiceClient, url: str = None, ) -> str:
     return info["title"]
 
 
+@bot.event
+async def on_ready():
+    print("im ready")
+
 
 @bot.command(name="disconnect", aliases=["dc"], help="Disconnect from voice")
 async def disconnect(ctx: discord.ext.commands.Context) -> None:
@@ -92,6 +96,7 @@ async def play(ctx: discord.ext.commands.Context, source: str, *args) -> None:
 @bot.command(name="f", help="Pay respects.")
 async def ef(ctx: discord.ext.commands.Context) -> None:
     pass
+
 
 
 @bot.event
