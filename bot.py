@@ -22,7 +22,9 @@ tidal_session.login(os.getenv("TIDAL_UNAME"), os.getenv("TIDAL_PWD"))
 
 bot = discord.ext.commands.Bot(command_prefix=".")
 
-voice_client: Union[None, VoiceClient] = None
+voice_client: Union[VoiceClient, None] = None
+
+queue: Union[list[tuple[str, str]], None] = None
 
 
 
@@ -115,7 +117,7 @@ async def disconnect(ctx: Context) -> None:
     global voice_client
 
     if voice_client and voice_client.is_connected():
-        voice_client = await voice_client.disconnect()
+        await voice_client.disconnect()
     else:
         await ctx.send(f"{ctx.message.author.mention}... bruuuuuuh... I'm not even here!")
 
@@ -126,12 +128,24 @@ async def disconnect(ctx: Context) -> None:
 async def ef(ctx: Context) -> None:
     await ctx.send(f"{ctx.message.author.mention}, I pay my respects.")
 
+
+
+
+@bot.command(name="shutdown", aliases=["sd, shtdwn"], help="Shut the bot down")
+async def shutdown(ctx: Context) -> None:
+    global voice_client
+
+    if voice_client and voice_client.is_connected():
+        await voice_client.disconnect()
+
+    await bot.logout()
+
     
 
 
 @bot.event
-async def on_command_error(ctx: Context, error, *args, **kwargs):
-    await ctx.message.channel.send(f"mi a faszom ez a geci\n{error}")
+async def on_command_error(ctx: Context, error: str):
+    await ctx.send(error)
 
 
 
