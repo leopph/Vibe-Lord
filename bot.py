@@ -1,14 +1,14 @@
 import os
-import sys
-from discord.abc import Connectable
-from discord.channel import VoiceChannel
-from discord.voice_client import VoiceClient
 import dotenv
 import discord
 import discord.utils
 import discord.ext.commands
 import tidalapi
 import youtube_dl
+import contextlib
+from typing import Union
+from discord import VoiceClient
+from discord.ext.commands import Context
 
 
 
@@ -23,8 +23,12 @@ tidal_session.login(os.getenv("TIDAL_UNAME"), os.getenv("TIDAL_PWD"))
 
 bot = discord.ext.commands.Bot(command_prefix=".")
 
+voice_client: Union[None, VoiceClient] = None
 
-async def play_tidal(voice: discord.VoiceClient, search_str: str = None) -> None:
+
+
+
+async def play_tidal(voice: VoiceClient, search_str: str = None) -> None:
     track = tidal_session.search("track", search_str).tracks[0]
     voice.play(discord.FFmpegPCMAudio(tidal_session.get_track_url(track.id)))
 
@@ -33,6 +37,8 @@ async def play_tidal(voice: discord.VoiceClient, search_str: str = None) -> None
         artists += artist.name + ", "
     
     return artists[0:-2] + " - " + track.name
+
+
 
 
 async def play_yt(voice: VoiceClient, url: str = None, ) -> str:
@@ -48,36 +54,36 @@ async def play_yt(voice: VoiceClient, url: str = None, ) -> str:
     return info["title"]
 
 
+
+
 @bot.event
 async def on_ready():
-    print("im ready")
+    print("Ready.")
 
 
-@bot.command(name="disconnect", aliases=["dc"], help="Disconnect from voice")
-async def disconnect(ctx: discord.ext.commands.Context) -> None:
-    for voice in bot.voice_clients:
-        if (voice.is_connected()):
-            await voice.disconnect()
+
+
+
+
 
 
 
 @bot.command(name="stop", aliases=["s"], help="Stop playback if currently playing")
-async def stop(ctx: discord.ext.commands.Context) -> None:
+async def stop(ctx: Context) -> None:
     voice_channel = discord.utils.get(bot.voice_clients, guild=ctx.guild)
     if voice_channel:
         voice_channel.stop()
 
 
 
+
 @bot.command(name="play", aliases=["p"], help="Play track from the parameter source")
 async def play(ctx: discord.ext.commands.Context, source: str, *args) -> None:
-    voice_channel = discord.utils.get(bot.voice_clients, guild=ctx.guild)
+    with contextlib.suppress(Exception):
+        global voice_client
+        voice_client = await ctx.message.author.voice.channel.connect()
 
-    if (not voice_channel):
-        await ctx.message.author.voice.channel.connect()
-        voice_channel = discord.utils.get(bot.voice_clients, guild=ctx.guild)
-
-    voice_channel.stop()
+    voice_client.stop()
 
     target = ""
     for arg in args:
@@ -86,22 +92,58 @@ async def play(ctx: discord.ext.commands.Context, source: str, *args) -> None:
     target = target[0:-1]
 
     if (source == "t" or source == "tidal"):
-        await ctx.message.channel.send(await play_tidal(voice_channel, target))
+        await ctx.message.channel.send(await play_tidal(voice_client, target))
     elif(source == "y" or source == "youtube"):
-        await ctx.message.channel.send(await play_yt(voice_channel, target))
+        await ctx.message.channel.send(await play_yt(voice_client, target))
     else:
         await ctx.message.channel.send(f"Unknown source: \"{source}\"")
 
 
 @bot.command(name="f", help="Pay respects.")
-async def ef(ctx: discord.ext.commands.Context) -> None:
+async def ef(ctx: Context) -> None:
     await ctx.message.channel.send(ctx.message.author.name + ", I pay my respects.")
 
 
 
+
+@bot.command(name="pause", help="Pause playback.")
+async def pause(ctx: Context) -> None:
+    global voice_client
+    if (not voice_client or not voice_client.is_connected()):
+        await ctx.send(f"{ctx.message.author.mention} bruh, I'm not even in voice...")
+
+    if (not voice_client.is_playing()):
+        await ctx.send(f"{ctx.message.author.mention} bruh, I'm not even playing anything...")
+
+
+
+
+@bot.command(name="connect", aliases=["c"], help="Connect to voice channel")
+async def connect(ctx: Context):
+    global voice_client
+    if (not voice_client or not voice_client.is_connected()):
+        voice_client = await ctx.message.author.voice.channel.connect()
+    else:
+        await ctx.send(f"{ctx.message.author.mention}... Dood... I'm already here...")
+
+
+
+
+@bot.command(name="disconnect", aliases=["dc"], help="Disconnect from voice channel")
+async def disconnect(ctx: Context) -> None:
+    global voice_client
+    if voice_client and voice_client.is_connected():
+        voice_client = await voice_client.disconnect()
+    else:
+        await ctx.send(f"{ctx.message.author.mention}... bruuuuuuh... I'm not even here!")
+
+    
+
+
 @bot.event
-async def on_command_error(ctx: discord.ext.commands.Context, error, *args, **kwargs):
-    await ctx.message.channel.send(f"mi a faszom ez a geci")
+async def on_command_error(ctx: Context, error, *args, **kwargs):
+    await ctx.message.channel.send(f"mi a faszom ez a geci\n{error}")
+
 
 
 
