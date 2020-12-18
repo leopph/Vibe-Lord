@@ -106,22 +106,44 @@ async def ef(ctx: Context) -> None:
 
 
 
-@bot.command(name="pause", help="Pause playback.")
+@bot.command(name="pause", help="Pause playback")
 async def pause(ctx: Context) -> None:
     global voice_client
-    if (not voice_client or not voice_client.is_connected()):
+
+    if not voice_client or not voice_client.is_connected():
         await ctx.send(f"{ctx.message.author.mention} bruh, I'm not even in voice...")
 
-    if (not voice_client.is_playing()):
+    elif not voice_client.is_playing():
         await ctx.send(f"{ctx.message.author.mention} bruh, I'm not even playing anything...")
+
+    else:
+        voice_client.pause()
+        await ctx.send(f"Alrighty, {ctx.message.author.mention}, I paused this shit for ya.")
+
+
+
+@bot.command(name="resume", help="Resume playback")
+async def resume(ctx: Context) -> None:
+    global voice_client
+
+    if not voice_client or not voice_client.is_connected():
+        await ctx.send(f"{ctx.message.author.mention} bruh, I'm not even in voice...")
+
+    elif not voice_client.is_paused():
+        await ctx.send(f"{ctx.message.author.mention} you fucking cringe, I'm not paused!")
+
+    else:
+        voice_client.resume()
+        await ctx.send(f"{ctx.message.author.mention} On it, chief. Resuming playback.")
 
 
 
 
 @bot.command(name="connect", aliases=["c"], help="Connect to voice channel")
-async def connect(ctx: Context):
+async def connect(ctx: Context) -> None:
     global voice_client
-    if (not voice_client or not voice_client.is_connected()):
+
+    if not voice_client or not voice_client.is_connected():
         voice_client = await ctx.message.author.voice.channel.connect()
     else:
         await ctx.send(f"{ctx.message.author.mention}... Dood... I'm already here...")
@@ -132,6 +154,7 @@ async def connect(ctx: Context):
 @bot.command(name="disconnect", aliases=["dc"], help="Disconnect from voice channel")
 async def disconnect(ctx: Context) -> None:
     global voice_client
+
     if voice_client and voice_client.is_connected():
         voice_client = await voice_client.disconnect()
     else:
