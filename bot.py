@@ -8,6 +8,7 @@ import youtube_dl
 from typing import Union
 from discord import VoiceClient
 from discord.ext.commands import Context
+from queue import Queue
 
 
 
@@ -24,7 +25,7 @@ bot = discord.ext.commands.Bot(command_prefix=".")
 
 voice_client: Union[VoiceClient, None] = None
 
-queue: Union[list[tuple[str, str]], None] = None
+queue: Queue[tuple[str, discord.FFmpegPCMAudio]] = Queue()
 
 
 
@@ -37,22 +38,31 @@ async def on_ready():
 
 
 @bot.command(name="play", aliases=["p"], help="Play track from the parameter source")
-async def play(ctx: Context, source: str, *args) -> None:
+async def queue_new_song(ctx: Context, source: str, *args) -> None:
     global voice_client
 
     if not voice_client or not voice_client.is_connected():
         voice_client = await ctx.message.author.voice.channel.connect()
 
-    target = " ".join(args)[0:-1]
+    target = " ".join(args)
+
+    tmp = None
 
     if (source == "t" or source == "tidal"):
-        await ctx.send(play_tidal(voice_client, target))
+        tmp = play_tidal(target)
 
     elif(source == "y" or source == "youtube"):
-        await ctx.send(play_yt(voice_client, target))
+        tmp = play_yt(target)
 
     else:
         await ctx.send(f"{ctx.message.author.mention}, you fucking moron, there is no \"{source}\" source option!")
+        return
+
+    queue.put(tmp)
+    await ctx.send(f"{ctx.message.author.mention} sure thing mate, Imma queue {tmp[0]} for ya!")
+
+    if not voice_client.is_playing():
+        play_next(ctx)
 
 
 
@@ -62,6 +72,7 @@ async def stop(ctx: Context) -> None:
     voice_channel = discord.utils.get(bot.voice_clients, guild=ctx.guild)
     if voice_channel:
         voice_channel.stop()
+        queue.queue.clear()
 
 
 
@@ -150,20 +161,31 @@ async def on_command_error(ctx: Context, error: str):
 
 
 
-def play_tidal(voice: VoiceClient, search_str: str = None) -> str:
+def play_next(ctx: Context):
+    if (not queue.empty()):
+        global voice_client
+        song = queue.get()
+        voice_client.play(source=song[1], after=lambda e: play_next(ctx))
+        #ctx.send(f"Now playing: {song[0]}")
+
+
+
+
+def play_tidal(search_str: str = "") -> tuple[str, discord.FFmpegPCMAudio]:
     track = tidal_session.search("track", search_str, limit=1).tracks[0]
-    voice.play(discord.FFmpegPCMAudio(tidal_session.get_track_url(track.id)))
 
-    artists = ""
-    for artist in track.artists:
-        artists += artist.name + ", "
-    
-    return artists[0:-2] + " - " + track.name
+    title = ", ".join([artist.name for artist in track.artists]) + " - " + track.name
+
+    url = tidal_session.get_track_url(track.id)
+
+    audio_source = discord.FFmpegPCMAudio(url)
+
+    return (title, audio_source)
 
 
 
 
-def play_yt(voice: VoiceClient, url: str = None, ) -> str:
+def play_yt(url: str = "", ) -> tuple[str, discord.FFmpegPCMAudio]:
     YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
     FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 
@@ -171,9 +193,9 @@ def play_yt(voice: VoiceClient, url: str = None, ) -> str:
         info = ydl.extract_info(url, download=False)
     URL = info['formats'][0]['url']
 
-    voice.play(discord.FFmpegPCMAudio(URL, **FFMPEG_OPTIONS))
+    source = discord.FFmpegPCMAudio(URL, **FFMPEG_OPTIONS)
 
-    return info["title"]
+    return (info["title"], source)
 
 
 
