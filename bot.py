@@ -48,10 +48,10 @@ async def queue_new_song(ctx: Context, source: str, *args) -> None:
 
     tmp = None
 
-    if (source == "t" or source == "tidal"):
+    if source == "t" or source == "tidal":
         tmp = play_tidal(target)
 
-    elif(source == "y" or source == "youtube"):
+    elif source == "y" or source == "youtube":
         tmp = play_yt(target)
 
     else:
@@ -151,22 +151,31 @@ async def shutdown(ctx: Context) -> None:
 
     await bot.logout()
 
+
+
+
+@bot.command(name="skip", help="Skip to the next song in queue")
+async def skip(ctx: Context) -> None:
+    global voice_client
+    if voice_client and (voice_client.is_playing() or voice_client.is_paused()):
+        voice_client.stop()
+        await ctx.send(f"Okay {ctx.message.author.name}, skipping.")
+
     
 
 
 @bot.event
-async def on_command_error(ctx: Context, error: str):
+async def on_command_error(ctx: Context, error: str) -> None:
     await ctx.send(error)
 
 
 
 
-def play_next(ctx: Context):
-    if (not queue.empty()):
+def play_next(ctx: Context) -> None:
+    if not queue.empty():
         global voice_client
         song = queue.get()
         voice_client.play(source=song[1], after=lambda e: play_next(ctx))
-        #ctx.send(f"Now playing: {song[0]}")
 
 
 
