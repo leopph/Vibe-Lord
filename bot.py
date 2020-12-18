@@ -183,13 +183,14 @@ def play_next(ctx: Context) -> None:
 
 
 def play_tidal(search_str: str = "") -> tuple[str, discord.FFmpegPCMAudio]:
+    FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
     track = tidal_session.search("track", search_str, limit=1).tracks[0]
 
     title = ", ".join([artist.name for artist in track.artists]) + " - " + track.name
 
     url = tidal_session.get_track_url(track.id)
 
-    audio_source = discord.FFmpegPCMAudio(url)
+    audio_source = discord.FFmpegPCMAudio(url, **FFMPEG_OPTIONS)
 
     return (title, audio_source)
 
