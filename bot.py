@@ -198,7 +198,7 @@ def play_tidal(search_str: str = "") -> tuple[str, discord.FFmpegPCMAudio]:
 
 
 def play_yt(source: str = "", ) -> tuple[str, discord.FFmpegPCMAudio]:
-    YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
+    YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True', "quiet": "True"}
     FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 
     with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
