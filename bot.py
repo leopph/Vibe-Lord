@@ -149,6 +149,8 @@ async def shutdown(ctx: Context) -> None:
     if voice_client and voice_client.is_connected():
         await voice_client.disconnect()
 
+    await ctx.send("Goodbye fellas!")
+
     await bot.logout()
 
 
