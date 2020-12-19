@@ -1,7 +1,6 @@
 import os
 import dotenv
 import tidalapi
-import youtube_dl
 import re
 from typing import Union
 from queue import Queue
@@ -9,6 +8,7 @@ from discord import VoiceClient
 from discord import Embed
 from discord.ext.commands import Context
 from discord.ext.commands import Bot
+from youtube_dl import YoutubeDL
 from response import Response
 from song import Song
 
@@ -42,6 +42,7 @@ async def on_ready():
 @bot.event
 async def on_command_error(ctx: Context, error: str) -> None:
     await ctx.send("oof")
+    print(error)
 
 
 
@@ -76,32 +77,46 @@ async def show_queue(ctx: Context):
 
 
 
-@bot.command(name="play", aliases=["p"], help="Play track from the parameter source")
-async def queue_new_song(ctx: Context, source: str, *args) -> None:
-    global voice_client
+@bot.command(name="youtube", aliases=["y"], help="Play track from YouTube")
+async def youtube(ctx: Context, *, source) -> None:
+    YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True', "quiet": "True"}
 
-    if not voice_client or not voice_client.is_connected():
-        voice_client = await ctx.message.author.voice.channel.connect()
+    with YoutubeDL(YDL_OPTIONS) as ydl:
+        if URL.match(source):
+            info = ydl.extract_info(source, download=False)
+        else:
+            info = ydl.extract_info(f"ytsearch:{source}", download=False)['entries'][0]
 
-    target = " ".join(args)
+        title = info["artist"] + " - " + info["track"] if info["artist"] and info["track"] else info["title"]
+        song = Song(title, info["duration"], info["url"], info["thumbnails"][-1]["url"])
 
-    tmp = None
+    queue.put(song)
+    await ctx.send(Response.get("QUEUE").format(song.title))
 
-    if source == "t" or source == "tidal":
-        tmp = play_tidal(target)
+    if ctx.author.voice.channel not in [client.channel for client in ctx.bot.voice_clients]:
+        await ctx.author.voice.channel.connect()
 
-    elif source == "y" or source == "youtube":
-        tmp = play_yt(target)
+    if not ctx.voice_client.is_playing():
+        play_next(ctx.voice_client)
 
-    else:
-        await ctx.send(Response.get("BAD_SOURCE").format(ctx.message.author.mention, source))
-        return
 
-    queue.put(tmp)
-    await ctx.send(Response.get("QUEUE").format(tmp.title))
 
-    if not voice_client.is_playing():
-        play_next()
+
+@bot.command(name="tidal", aliases=["t"], help="Play track from Tidal")
+async def tidal(ctx: Context, *, source) -> None:
+    track = tidal_session.search("track", source, limit=1).tracks[0]
+    title = ", ".join([artist.name for artist in track.artists]) + " - " + track.name
+    url = tidal_session.get_track_url(track.id)
+    song = Song(title, track.duration, url, track.album.image)
+
+    queue.put(song)
+    await ctx.send(Response.get("QUEUE").format(song.title))
+
+    if ctx.author.voice.channel not in [client.channel for client in ctx.bot.voice_clients]:
+        await ctx.author.voice.channel.connect()
+
+    if not ctx.voice_client.is_playing():
+        play_next(ctx.voice_client)
 
 
 
@@ -205,42 +220,15 @@ async def skip(ctx: Context) -> None:
 
 
 
-def play_next() -> None:
+def play_next(voice_client: VoiceClient) -> None:
     global current_song
 
     if not queue.empty():
-        global voice_client
         current_song = queue.get()
-        voice_client.play(source=current_song.new_source(**FFMPEG_OPTIONS), after=lambda e: play_next())
+        voice_client.play(source=current_song.new_source(**FFMPEG_OPTIONS), after=lambda e: play_next(voice_client))
     
     else:
         current_song = None
-
-
-
-
-def play_tidal(search_str: str = "") -> Song:
-    track = tidal_session.search("track", search_str, limit=1).tracks[0]
-    title = ", ".join([artist.name for artist in track.artists]) + " - " + track.name
-    url = tidal_session.get_track_url(track.id)
-
-    return Song(title, track.duration, url, track.album.image)
-
-
-
-
-def play_yt(source: str = "", ) -> Song:
-    YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True', "quiet": "True"}
-
-    with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
-        if URL.match(source):
-            info = ydl.extract_info(source, download=False)
-            print("url match")
-        else:
-            info = ydl.extract_info(f"ytsearch:{source}", download=False)['entries'][0]
-
-        title = info["artist"] + " - " + info["track"] if info["artist"] and info["track"] else info["title"]
-        return Song(title, info["duration"], info["url"], info["thumbnails"][-1]["url"])
 
 
 
