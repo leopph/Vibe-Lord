@@ -1,15 +1,14 @@
 import os
 import dotenv
-import discord
-import discord.utils
-import discord.ext.commands
 import tidalapi
 import youtube_dl
 from typing import Union
+from queue import Queue
 from discord import VoiceClient
 from discord.ext.commands import Context
-from queue import Queue
+from discord.ext.commands import Bot
 from response import Response
+from song import Song
 
 
 
@@ -17,16 +16,17 @@ from response import Response
 dotenv.load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-GUILD = os.getenv("DISCORD_GUILD")
+FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 
 tidal_session = tidalapi.Session()
 tidal_session.login(os.getenv("TIDAL_UNAME"), os.getenv("TIDAL_PWD"))
 
-bot = discord.ext.commands.Bot(command_prefix=".")
+bot = Bot(command_prefix=".")
 
 voice_client: Union[VoiceClient, None] = None
 
-queue: Queue[tuple[str, discord.FFmpegPCMAudio]] = Queue()
+queue: Queue[Song] = Queue()
+current_song: Union[Song, None] = None
 
 
 
@@ -34,6 +34,24 @@ queue: Queue[tuple[str, discord.FFmpegPCMAudio]] = Queue()
 @bot.event
 async def on_ready():
     print("Ready.")
+
+
+
+
+@bot.command(name="nowplaying", aliases=["np"], help="Show the current song")
+async def now_paying(ctx: Context) -> None:
+    global current_song
+    await ctx.send(f"Now playing: {current_song.title}" if current_song else f"Currently not playing anything!")
+
+
+
+
+@bot.command(name="queue", aliases=["q", "que"], help="Show songs in queue")
+async def show_queue(ctx: Context):
+    global queue
+    global current_song
+
+    await ctx.send("--- " + current_song.title + " ---\n" + "\n".join([song.title for song in queue.queue]) if current_song else "Queue is empty.")
 
 
 
@@ -60,10 +78,10 @@ async def queue_new_song(ctx: Context, source: str, *args) -> None:
         return
 
     queue.put(tmp)
-    await ctx.send(Response.get("QUEUE").format(tmp[0]))
+    await ctx.send(Response.get("QUEUE").format(tmp.title))
 
     if not voice_client.is_playing():
-        play_next(ctx)
+        play_next()
 
 
 
@@ -174,38 +192,36 @@ async def on_command_error(ctx: Context, error: str) -> None:
 
 
 
-def play_next(ctx: Context) -> None:
+def play_next() -> None:
+    global current_song
+
     if not queue.empty():
         global voice_client
-        song = queue.get()
-        voice_client.play(source=song[1], after=lambda e: play_next(ctx))
+        current_song = queue.get()
+        voice_client.play(source=current_song.new_source(**FFMPEG_OPTIONS), after=lambda e: play_next())
+    
+    else:
+        current_song = None
 
 
 
 
-def play_tidal(search_str: str = "") -> tuple[str, discord.FFmpegPCMAudio]:
-    FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+def play_tidal(search_str: str = "") -> Song:
     track = tidal_session.search("track", search_str, limit=1).tracks[0]
-
     title = ", ".join([artist.name for artist in track.artists]) + " - " + track.name
-
     url = tidal_session.get_track_url(track.id)
 
-    audio_source = discord.FFmpegPCMAudio(url, **FFMPEG_OPTIONS)
-
-    return (title, audio_source)
+    return Song(title, url)
 
 
 
 
-def play_yt(source: str = "", ) -> tuple[str, discord.FFmpegPCMAudio]:
+def play_yt(source: str = "", ) -> Song:
     YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True', "quiet": "True"}
-    FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 
     with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
         info = ydl.extract_info(f"ytsearch:{source}", download=False)['entries'][0]
-        audio_source = discord.FFmpegPCMAudio(info['url'], **FFMPEG_OPTIONS)
-        return (info["title"], audio_source)
+        return Song(info["title"], info['url'])
 
 
 
