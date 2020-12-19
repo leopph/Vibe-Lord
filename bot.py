@@ -2,6 +2,7 @@ import os
 import dotenv
 import tidalapi
 import youtube_dl
+import re
 from typing import Union
 from queue import Queue
 from discord import VoiceClient
@@ -18,6 +19,7 @@ dotenv.load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+URL = re.compile(r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
 
 tidal_session = tidalapi.Session()
 tidal_session.login(os.getenv("TIDAL_UNAME"), os.getenv("TIDAL_PWD"))
@@ -67,7 +69,7 @@ async def now_paying(ctx: Context) -> None:
 
 
 
-@bot.command(name="queue", aliases=["q", "que"], help="Show songs in queue")
+@bot.command(name="queue", aliases=["q", "que", "queueue"], help="Show songs in queue")
 async def show_queue(ctx: Context):
     await ctx.send("--- " + current_song.title + " ---\n" + "\n".join([song.title for song in queue.queue]) if current_song else "Queue is empty.")
 
@@ -231,7 +233,12 @@ def play_yt(source: str = "", ) -> Song:
     YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True', "quiet": "True"}
 
     with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
-        info = ydl.extract_info(f"ytsearch:{source}", download=False)['entries'][0]
+        if URL.match(source):
+            info = ydl.extract_info(source, download=False)
+            print("url match")
+        else:
+            info = ydl.extract_info(f"ytsearch:{source}", download=False)['entries'][0]
+
         title = info["artist"] + " - " + info["track"] if info["artist"] and info["track"] else info["title"]
         return Song(title, info["duration"], info["url"], info["thumbnails"][-1]["url"])
 
