@@ -5,6 +5,7 @@ import youtube_dl
 from typing import Union
 from queue import Queue
 from discord import VoiceClient
+from discord import Embed
 from discord.ext.commands import Context
 from discord.ext.commands import Bot
 from response import Response
@@ -61,17 +62,13 @@ async def seek(ctx: Context, seconds: int) -> None:
 
 @bot.command(name="nowplaying", aliases=["np"], help="Show the current song")
 async def now_paying(ctx: Context) -> None:
-    global current_song
-    await ctx.send(f"Now playing: {current_song.title}" if current_song else f"Currently not playing anything!")
+    await ctx.send(f"Now playing: {current_song.title}" if current_song else f"Currently not playing anything!", embed=Embed().set_image(url=current_song.image) if current_song.image else None)
 
 
 
 
 @bot.command(name="queue", aliases=["q", "que"], help="Show songs in queue")
 async def show_queue(ctx: Context):
-    global queue
-    global current_song
-
     await ctx.send("--- " + current_song.title + " ---\n" + "\n".join([song.title for song in queue.queue]) if current_song else "Queue is empty.")
 
 
@@ -225,7 +222,7 @@ def play_tidal(search_str: str = "") -> Song:
     title = ", ".join([artist.name for artist in track.artists]) + " - " + track.name
     url = tidal_session.get_track_url(track.id)
 
-    return Song(title, track.duration, url)
+    return Song(title, track.duration, url, track.album.image)
 
 
 
@@ -235,7 +232,8 @@ def play_yt(source: str = "", ) -> Song:
 
     with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
         info = ydl.extract_info(f"ytsearch:{source}", download=False)['entries'][0]
-        return Song(info["title"], info["duration"], info["url"])
+        title = info["artist"] + " - " + info["track"] if info["artist"] and info["track"] else info["title"]
+        return Song(title, info["duration"], info["url"], info["thumbnails"][-1]["url"])
 
 
 
