@@ -36,6 +36,27 @@ async def on_ready():
     print("Ready.")
 
 
+@bot.event
+async def on_command_error(ctx: Context, error: str) -> None:
+    await ctx.send("oof")
+
+
+
+
+@bot.command(name="seek", help="Skip to a certain part of the current song")
+async def seek(ctx: Context, seconds: int) -> None:
+    if not current_song:
+        await ctx.send("There's nothing to seek, I'm not playing anything currently.")
+    
+    elif current_song.length >= seconds >= 0:
+        seek_opts = FFMPEG_OPTIONS.copy()
+        seek_opts["before_options"] = FFMPEG_OPTIONS["before_options"] + f" -ss {seconds}"
+        voice_client.source=current_song.new_source(**seek_opts)
+    
+    else:
+        await ctx.send("Invalid timestamp.")
+
+
 
 
 @bot.command(name="nowplaying", aliases=["np"], help="Show the current song")
@@ -86,7 +107,7 @@ async def queue_new_song(ctx: Context, source: str, *args) -> None:
 
 
 
-@bot.command(name="stop", aliases=["s"], help="Stop playback if currently playing")
+@bot.command(name="stop", help="Stop playback if currently playing")
 async def stop(ctx: Context) -> None:
     global voice_client
     if voice_client and voice_client.is_playing():
@@ -182,13 +203,6 @@ async def skip(ctx: Context) -> None:
         voice_client.stop()
         await ctx.send(Response.get("SKIP"))
 
-    
-
-
-@bot.event
-async def on_command_error(ctx: Context, error: str) -> None:
-    await ctx.send(error)
-
 
 
 
@@ -211,7 +225,7 @@ def play_tidal(search_str: str = "") -> Song:
     title = ", ".join([artist.name for artist in track.artists]) + " - " + track.name
     url = tidal_session.get_track_url(track.id)
 
-    return Song(title, url)
+    return Song(title, track.duration, url)
 
 
 
@@ -221,7 +235,7 @@ def play_yt(source: str = "", ) -> Song:
 
     with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
         info = ydl.extract_info(f"ytsearch:{source}", download=False)['entries'][0]
-        return Song(info["title"], info['url'])
+        return Song(info["title"], info["duration"], info["url"])
 
 
 
