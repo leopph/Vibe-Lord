@@ -1,11 +1,4 @@
 {
-    "BAD_SOURCE":
-        [
-            "{0}, you fucking moron, there is no \"{1}\" source option!",
-            "Dood... {0}... \"{1}\" is not even a source option!",
-            "{0}... this is really cringe... but... ur retarded. \"{1}\" is not a valid source option..."
-        ],
-
     "QUEUE":
         [
             "Alrighty mate, {0} is in queue!",
@@ -88,5 +81,29 @@
             "Finally! I hated that!",
             "Yea, I don't like that either.",
             "Oh no! That was my favorite!"
-        ]
+        ],
+
+    "USER_NOT_IN_VOICE":
+    [
+        "Look... {0}... Bruv... U not in voice, innit?",
+        "Hey {0}! I wouldn't mind if you joined the voice channel here first.",
+        "Oh, {0}, you think you're fancy giving me commands from anywhere? GET IN THE VOICE CHANNEL! NOW!"
+    ],
+
+    "BAD_TIMESTAMP":
+    [
+        "Please, {0}, check your seconds. This isn't even valid.",
+        "Sure, {0}, why don't I just SKIP THE WHOLE THING?!",
+        "Right. {0}, I'm sorry, but I can't do that. This song is just not ready for that."
+    ],
+
+    "QUEUE_EMPTY":
+    [
+        "Nothing in queue!",
+        "Queue is as dry as the Taklamakan.",
+        "The queue is empty.",
+        "There's NOTHING about to be played.",
+        "QUICKLY, FEED ME MORE MUSIC! I'VE RUN OUT!",
+        "I've run out of songs to play for you... Sad moment..."
+    ]
 }

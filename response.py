@@ -7,8 +7,12 @@ class Response:
         RESPONSES: dict[str, list[str]] = json.load(responses)
 
     @staticmethod
-    def get(cat: str) -> str:
+    def get(cat: str, *args) -> str:
         if cat not in Response.RESPONSES:
-            raise Exception
+            raise Exception("INVALID RESPONSE CATEGORY")
 
-        return random.choice(Response.RESPONSES[cat])
+        try:
+            return random.choice(Response.RESPONSES[cat]).format(*args)
+            
+        except IndexError:
+            raise Exception("NOT ENOUGH PARAMETERS FOR RESPONSE")
