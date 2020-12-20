@@ -301,11 +301,12 @@ async def remove(ctx: Context, index: int) -> None:
         await ctx.send(Response.get("USER_NOT_IN_VOICE", ctx.author.mention))
 
     else:
-        try:
-            removed_song = queues[ctx.voice_client].remove(index - 1)
+        removed_song = queues[ctx.voice_client].remove(index - 1)
+        
+        if(removed_song):
             await ctx.send(Response.get("SONG_REMOVED", removed_song.title))
-
-        except:
+        
+        else:
             await ctx.send(Response.get("BAD_INDEX", ctx.author.mention, index))
 
     
