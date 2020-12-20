@@ -105,5 +105,20 @@
         "There's NOTHING about to be played.",
         "QUICKLY, FEED ME MORE MUSIC! I'VE RUN OUT!",
         "I've run out of songs to play for you... Sad moment..."
+    ],
+
+    "SONG_REMOVED":
+    [
+        "{0} removed from the queue!",
+        "{0} is no longer in the queue!",
+        "I just annihilated {0}... Oh god... What have I done...",
+        "{0} HAS BEEN DESTROYED!"
+    ],
+
+    "BAD_INDEX":
+    [
+        "That ain't it, {0}. There's no song at position {1} in the queue.",
+        "{0}, your wish to delete the {1}. song just can't be fulfilled.",
+        "I'm sorry, {0}, but I can't delete the {1}. song. It doesn't exist."
     ]
 }

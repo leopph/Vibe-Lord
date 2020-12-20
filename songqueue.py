@@ -26,10 +26,10 @@ class SongQueue:
         self.__queue.append(song)
 
     
-    def remove(self, index: int) -> Union[Song, None]:
-        if len(self.__queue) > index:
+    def remove(self, index: int) -> Song:
+        if len(self.__queue) > index >= 0:
             return self.__queue.pop(index)
-        return None
+        raise Exception("Invalid queue index!")
 
     
     def clear(self) -> None:

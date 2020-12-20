@@ -244,7 +244,7 @@ async def disconnect(ctx: Context) -> None:
 
 
 
-@bot.command(name="f", help="Pay respects")
+@bot.command(name="f", aliases=["F"], help="Pay respects")
 async def ef(ctx: Context) -> None:
     await ctx.send(Response.get("F", ctx.message.author.mention))
 
@@ -287,6 +287,28 @@ async def skip(ctx: Context) -> None:
         await ctx.send(Response.get("SKIP"))
 
 
+
+
+@bot.command(name="remove", aliases=["annihilate", "r"], help="Remove song from queue")
+async def remove(ctx: Context, index: int) -> None:
+    if not ctx.author.voice or ctx.author.voice.channel not in ctx.guild.voice_channels:
+        await ctx.send(Response.get("USER_NOT_IN_VOICE", ctx.author.mention))
+
+    elif not ctx.voice_client:
+        await ctx.send(Response.get("NOT_IN_VOICE", ctx.author.mention))
+
+    elif ctx.author.voice.channel not in [client.channel for client in ctx.bot.voice_clients]:
+        await ctx.send(Response.get("USER_NOT_IN_VOICE", ctx.author.mention))
+
+    else:
+        try:
+            removed_song = queues[ctx.voice_client].remove(index - 1)
+            await ctx.send(Response.get("SONG_REMOVED", removed_song.title))
+
+        except:
+            await ctx.send(Response.get("BAD_INDEX", ctx.author.mention, index))
+
+    
 
 
 def play_next(voice_client: VoiceClient) -> None:
