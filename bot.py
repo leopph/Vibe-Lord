@@ -249,7 +249,7 @@ async def disconnect(ctx: Context) -> None:
 
 @bot.command(name="f", help="Pay respects")
 async def ef(ctx: Context) -> None:
-    await ctx.send(Response.get("F").format(ctx.message.author.mention))
+    await ctx.send(Response.get("F", ctx.message.author.mention))
 
 
 
