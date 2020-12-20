@@ -2,8 +2,7 @@ import os
 import dotenv
 import tidalapi
 import re
-from typing import Union
-from discord import VoiceClient, voice_client
+from discord import VoiceClient
 from discord import Embed
 from discord.ext.commands import Context
 from discord.ext.commands import Bot
@@ -139,10 +138,6 @@ async def tidal(ctx: Context, *, source) -> None:
     url = tidal_session.get_track_url(track.id)
     song = Song(title, track.duration, url, track.album.image)
 
-    if ctx.message.author.voice.channel not in [client.channel for client in ctx.bot.voice_clients]:
-        voice_client = await ctx.message.author.voice.channel.connect()
-        queues[voice_client] = SongQueue()
-
     if not ctx.voice_client:
         await ctx.message.author.voice.channel.connect()
         queues[ctx.voice_client] = SongQueue()
@@ -229,6 +224,7 @@ async def connect(ctx: Context) -> None:
 
     else:
         await ctx.message.author.voice.channel.connect()
+        queues[ctx.voice_client] = SongQueue()
 
 
 
@@ -242,6 +238,7 @@ async def disconnect(ctx: Context) -> None:
         await ctx.send(Response.get("NOT_IN_VOICE", ctx.message.author.mention))
 
     else:
+        del queues[ctx.voice_client]
         await ctx.voice_client.disconnect()
 
 
@@ -260,8 +257,10 @@ async def shutdown(ctx: Context) -> None:
         await ctx.send(Response.get("USER_NOT_IN_VOICE", ctx.author.mention))
         return
 
-    if ctx.voice_client:
-        await ctx.voice_client.disconnect()
+    for client in ctx.bot.voice_clients:
+        await client.disconnect()
+
+    queues.clear()
 
     await ctx.send(Response.get("GOODBYE"))
     await ctx.bot.logout()
