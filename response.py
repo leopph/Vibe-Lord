@@ -1,9 +1,10 @@
+from pathlib import Path
 import random
 import json
 
 
 class Response:
-    with open("responses.json") as responses:
+    with open(str(Path(__file__).parent.absolute()) + "/responses.json") as responses:
         RESPONSES: dict[str, list[str]] = json.load(responses)
 
     @staticmethod
