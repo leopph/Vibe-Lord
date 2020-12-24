@@ -1,15 +1,15 @@
 import os
 import dotenv
+import aiohttp
 import tidalapi
 import re
-from discord import VoiceClient
-from discord import Embed
-from discord.ext.commands import Context
-from discord.ext.commands import Bot
+from discord import VoiceClient, File
+from discord.ext.commands import Bot, Context
 from youtube_dl import YoutubeDL
 from response import Response
 from songqueue import SongQueue
 from song import Song
+from io import BytesIO
 
 
 
@@ -78,7 +78,7 @@ async def now_paying(ctx: Context) -> None:
         await ctx.send(Response.get("NOT_PLAYING", ctx.author.mention))
 
     else:
-        await ctx.send(f"Now playing: {queues[ctx.voice_client].now_playing.title}", embed=Embed().set_image(url=queues[ctx.voice_client].now_playing.image or None))
+        await ctx.send(f"Now playing: {queues[ctx.voice_client].now_playing.title}", file=File(queues[ctx.voice_client].now_playing.image, "cover.jpg"))
 
 
 
@@ -112,7 +112,7 @@ async def youtube(ctx: Context, *, source) -> None:
             info = ydl.extract_info(f"ytsearch:{source}", download=False)['entries'][0]
 
         title = info["artist"] + " - " + info["track"] if info["artist"] and info["track"] else info["title"]
-        song = Song(title, info["duration"], info["url"], info["thumbnails"][-1]["url"])
+        song = Song(title, info["duration"], info["url"], await download_image(info["thumbnails"][-1]["url"]))
 
     if not ctx.voice_client:
         await ctx.message.author.voice.channel.connect()
@@ -136,7 +136,7 @@ async def tidal(ctx: Context, *, source) -> None:
     track = tidal_session.search("track", source, limit=1).tracks[0]
     title = ", ".join([artist.name for artist in track.artists]) + " - " + track.name
     url = tidal_session.get_track_url(track.id)
-    song = Song(title, track.duration, url, track.album.image)
+    song = Song(title, track.duration, url, await download_image(track.album.image))
 
     if not ctx.voice_client:
         await ctx.message.author.voice.channel.connect()
@@ -317,6 +317,12 @@ def play_next(voice_client: VoiceClient) -> None:
 
     if queues[voice_client].now_playing:      
         voice_client.play(source=queues[voice_client].now_playing.new_source(**FFMPEG_OPTIONS), after=lambda e: play_next(voice_client))
+
+
+async def download_image(url: str) -> BytesIO:
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            return BytesIO(await response.read())
 
 
 

@@ -1,9 +1,10 @@
 from discord import FFmpegPCMAudio
-from typing import Union
+from typing import BinaryIO, Union
+from io import BytesIO
 
 
 class Song:
-    def __init__(self, title: str, length: int, url: str, img: str = None) -> None:
+    def __init__(self, title: str, length: int, url: str, img: BytesIO = None) -> None:
         self.__title = title
         self.__url = url
         self.__length = length
@@ -22,7 +23,7 @@ class Song:
         return self.__url
 
     @property
-    def image(self) -> Union[str, None]:
+    def image(self) -> Union[BytesIO, None]:
         return self.__img
 
     def new_source(self, **kwargs):
