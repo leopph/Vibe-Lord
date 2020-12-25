@@ -162,6 +162,9 @@ async def youtube(ctx: Context, *, source) -> None:
 
         if not ctx.voice_client.is_playing():
             play_next(ctx.voice_client)
+            
+    except IndexError:
+        await ctx.send(Response.get("NO_RESULT", ctx.author.mention))
 
 
 
