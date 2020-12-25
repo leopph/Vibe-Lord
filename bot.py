@@ -38,11 +38,7 @@ async def on_ready():
 
 
 @bot.event
-async def on_command_error(ctx: Context, error: str) -> None:
-    if isinstance(error, IndexError):
-        await ctx.send(Response.get("NO_RESULTS", ctx.author.mention))
-        return
-    
+async def on_command_error(ctx: Context, error: str) -> None:   
     await ctx.send(error)
 
 
@@ -131,26 +127,41 @@ async def youtube(ctx: Context, *, source) -> None:
         await ctx.send(Response.get("USER_NOT_IN_VOICE", ctx.author.mention))
         return
 
-    YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True', "quiet": "True"}
+    try:
+        songs = set()
 
-    with YoutubeDL(YDL_OPTIONS) as ydl:
-        if URL.match(source):
-            info = ydl.extract_info(source, download=False)
-        else:
-            info = ydl.extract_info(f"ytsearch:{source}", download=False)['entries'][0]
+        YDL_OPTIONS = {"format": "bestaudio", "quiet": "True", "ignoreerrors": "True"}
 
-        title = info["artist"] + " - " + info["track"] if info["artist"] and info["track"] else info["title"]
-        song = Song(title, info["duration"], info["url"], await download_image(info["thumbnails"][-1]["url"]))
+        with YoutubeDL(YDL_OPTIONS) as ydl:
+            if URL.match(source):
+                info = ydl.extract_info(source, download=False)
 
-    if not ctx.voice_client:
-        await ctx.message.author.voice.channel.connect()
-        queues[ctx.voice_client] = SongQueue()
+                if "entries" in info:
+                    for video in info["entries"]:
+                        if video:
+                            title = video["artist"] + " - " + video["track"] if video["artist"] and video["track"] else video["title"]
+                            songs.add(Song(title, video["duration"], video["url"], await download_image(video["thumbnails"][-1]["url"])))
 
-    queues[ctx.voice_client].add(song)
-    await ctx.send(Response.get("QUEUE", song.title))
+                else:
+                    title = info["artist"] + " - " + info["track"] if info["artist"] and info["track"] else info["title"]
+                    songs.add(Song(title, info["duration"], info["url"], await download_image(info["thumbnails"][-1]["url"])))
 
-    if not ctx.voice_client.is_playing():
-        play_next(ctx.voice_client)
+            else:
+                info = ydl.extract_info(f"ytsearch:{source}", download=False)['entries'][0]
+                title = info["artist"] + " - " + info["track"] if info["artist"] and info["track"] else info["title"]
+                songs.add(Song(title, info["duration"], info["url"], await download_image(info["thumbnails"][-1]["url"])))
+
+        if not ctx.voice_client:
+            await ctx.message.author.voice.channel.connect()
+            queues[ctx.voice_client] = SongQueue()
+
+        for song in songs:
+            queues[ctx.voice_client].add(song)
+
+        await ctx.send(Response.get("QUEUE", ", ".join([song.title for song in songs])))
+
+        if not ctx.voice_client.is_playing():
+            play_next(ctx.voice_client)
 
 
 
@@ -161,20 +172,24 @@ async def tidal(ctx: Context, *, source) -> None:
         await ctx.send(Response.get("USER_NOT_IN_VOICE", ctx.author.mention))
         return
 
-    track = tidal_session.search("track", source, limit=1).tracks[0]
-    title = ", ".join([artist.name for artist in track.artists]) + " - " + track.name
-    url = tidal_session.get_track_url(track.id)
-    song = Song(title, track.duration, url, await download_image(track.album.image))
+    try:
+        track = tidal_session.search("track", source, limit=1).tracks[0]
+        title = ", ".join([artist.name for artist in track.artists]) + " - " + track.name
+        url = tidal_session.get_track_url(track.id)
+        song = Song(title, track.duration, url, await download_image(track.album.image))
 
-    if not ctx.voice_client:
-        await ctx.message.author.voice.channel.connect()
-        queues[ctx.voice_client] = SongQueue()
+        if not ctx.voice_client:
+            await ctx.message.author.voice.channel.connect()
+            queues[ctx.voice_client] = SongQueue()
 
-    queues[ctx.voice_client].add(song)
-    await ctx.send(Response.get("QUEUE", song.title))
+        queues[ctx.voice_client].add(song)
+        await ctx.send(Response.get("QUEUE", song.title))
 
-    if not ctx.voice_client.is_playing():
-        play_next(ctx.voice_client)
+        if not ctx.voice_client.is_playing():
+            play_next(ctx.voice_client)
+
+    except IndexError:
+        await ctx.send(Response.get("NO_RESULT", ctx.author.mention))
 
 
 
@@ -194,8 +209,8 @@ async def stop(ctx: Context) -> None:
         await ctx.send(Response.get("NOT_PLAYING"), ctx.author.mention)
 
     else:
-        ctx.voice_client.stop()
         queues[ctx.voice_client].clear()
+        ctx.voice_client.stop() # ez valamiért kipergeti a play_next-et
 
 
 
