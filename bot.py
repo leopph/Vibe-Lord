@@ -39,7 +39,35 @@ async def on_ready():
 
 @bot.event
 async def on_command_error(ctx: Context, error: str) -> None:
+    if isinstance(error, IndexError):
+        await ctx.send(Response.get("NO_RESULTS", ctx.author.mention))
+        return
+    
     await ctx.send(error)
+
+
+
+
+@bot.command(name="shuffle", help="Randomly reorder the current queue")
+async def shuffle(ctx: Context) -> None:
+    if not ctx.author.voice or ctx.author.voice.channel not in ctx.guild.voice_channels:
+        await ctx.send(Response.get("USER_NOT_IN_VOICE"), ctx.author.mention)
+        return
+
+    if not ctx.voice_client:
+        await ctx.send(Response.get("NOT_IN_VOICE"), ctx.author.mention)
+        return
+
+    if ctx.author.voice.channel != ctx.voice_client.channel:
+        await ctx.send(Response.get("USER_NOT_IN_VOICE"), ctx.author.mention)
+        return
+
+    if queues[ctx.voice_client].is_empty():
+        await ctx.send(Response.get("QUEUE_EMPTY"))
+        return
+
+    queues[ctx.voice_client].shuffle()
+    await ctx.send(Response.get("SHUFFLE"))
 
 
 

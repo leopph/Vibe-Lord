@@ -120,5 +120,23 @@
         "That ain't it, {0}. There's no song at position {1} in the queue.",
         "{0}, your wish to delete the {1}. song just can't be fulfilled.",
         "I'm sorry, {0}, but I can't delete the {1}. song. It doesn't exist."
+    ],
+
+    "SHUFFLE":
+    [
+        "Shuffled.",
+        "The shuffling has been done.",
+        "I have fulfilled your request. The queue is now shuffled.",
+        "Queue reordered!",
+        "Done. The songs are truly random now.",
+        "Great. I love randonmess.",
+        "Oh, so you like adventures. Alright. Queue is about to turn on its head!"
+    ],
+
+    "NO_RESULTS":
+    [
+        "I'm sorry, {0}, I could not find anything.",
+        "{0}... bruv... Dis not even exist, innit?",
+        "No results found. I'm sorry to have ruined your day, {0}."
     ]
 }

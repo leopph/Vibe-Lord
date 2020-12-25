@@ -1,5 +1,6 @@
 from typing import Union
 from song import Song
+import random
 
 
 class SongQueue:
@@ -45,3 +46,10 @@ class SongQueue:
                 raise Exception("Queue is already depleted!")
         else:
             self.__now_playing = self.__queue.pop(0)
+
+
+    def shuffle(self) -> None:
+        if self.is_empty():
+            raise Exception("Cannot shuffle empty queue!")
+
+        random.shuffle(self.__queue)
