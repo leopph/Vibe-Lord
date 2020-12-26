@@ -161,7 +161,7 @@ async def youtube(ctx: Context, *, source) -> None:
         await ctx.send(Response.get("QUEUE", ", ".join([song.title for song in songs])))
 
         if not ctx.voice_client.is_playing():
-            play_next(ctx.voice_client)
+            play_next(None, ctx.voice_client)
             
     except IndexError:
         await ctx.send(Response.get("NO_RESULT", ctx.author.mention))
@@ -189,7 +189,7 @@ async def tidal(ctx: Context, *, source) -> None:
         await ctx.send(Response.get("QUEUE", song.title))
 
         if not ctx.voice_client.is_playing():
-            play_next(ctx.voice_client)
+            play_next(None, ctx.voice_client)
 
     except IndexError:
         await ctx.send(Response.get("NO_RESULT", ctx.author.mention))
@@ -213,7 +213,7 @@ async def stop(ctx: Context) -> None:
 
     else:
         queues[ctx.voice_client].clear()
-        ctx.voice_client.stop() # ez valamiért kipergeti a play_next-et
+        ctx.voice_client.stop()
 
 
 
@@ -358,11 +358,15 @@ async def remove(ctx: Context, index: int) -> None:
     
 
 
-def play_next(voice_client: VoiceClient) -> None:
+def play_next(error: Exception, voice_client: VoiceClient) -> None:
+    if error:
+        print(error)
+        return
+    
     queues[voice_client].next()
 
     if queues[voice_client].now_playing:      
-        voice_client.play(source=queues[voice_client].now_playing.new_source(**FFMPEG_OPTIONS), after=lambda e: play_next(voice_client))
+        voice_client.play(source=queues[voice_client].now_playing.new_source(**FFMPEG_OPTIONS), after=lambda error: play_next(error, voice_client))
 
 
 async def download_image(url: str) -> BytesIO:

@@ -35,7 +35,6 @@ class SongQueue:
     
     def clear(self) -> None:
         self.__queue.clear()
-        self.__now_playing = None
 
     
     def next(self) -> None:
