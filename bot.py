@@ -160,7 +160,7 @@ async def youtube(ctx: Context, *, source) -> None:
 
             await ctx.send(Response.get("QUEUE", song.title))
 
-            if not ctx.voice_client.is_playing():
+            if not ctx.voice_client.is_playing() and not ctx.voice_client.is_paused():
                 play_next(None, ctx.voice_client)
 
         
@@ -189,7 +189,7 @@ async def tidal(ctx: Context, *, source) -> None:
         queues[ctx.voice_client].add(song)
         await ctx.send(Response.get("QUEUE", song.title))
 
-        if not ctx.voice_client.is_playing():
+        if not ctx.voice_client.is_playing() and not ctx.voice_client.is_paused():
             play_next(None, ctx.voice_client)
 
     except IndexError:
