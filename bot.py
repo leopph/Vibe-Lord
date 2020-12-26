@@ -285,6 +285,7 @@ async def disconnect(ctx: Context) -> None:
         await ctx.send(Response.get("NOT_IN_VOICE", ctx.message.author.mention))
 
     else:
+        del queues[ctx.voice_client]
         await ctx.voice_client.disconnect()
 
 
@@ -307,11 +308,7 @@ async def shutdown(ctx: Context) -> None:
         return
 
     for client in ctx.bot.voice_clients:
-        queues[client].clear()
-        client.stop()
         await client.disconnect()
-
-    queues.clear()
 
     await ctx.send(Response.get("GOODBYE"))
     await ctx.bot.logout()
@@ -366,6 +363,9 @@ async def remove(ctx: Context, index: int) -> None:
 def play_next(error: Exception, voice_client: VoiceClient) -> None:
     if error:
         print(error)
+        return
+
+    if voice_client not in queues:
         return
     
     queues[voice_client].next()
