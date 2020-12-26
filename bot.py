@@ -98,7 +98,7 @@ async def now_paying(ctx: Context) -> None:
     if not ctx.voice_client:
         await ctx.send(Response.get("NOT_IN_VOICE", ctx.author.mention))
 
-    elif queues[ctx.voice_client] is None:
+    elif queues[ctx.voice_client].now_playing is None:
         await ctx.send(Response.get("NOT_PLAYING", ctx.author.mention))
 
     else:
@@ -135,6 +135,10 @@ async def youtube(ctx: Context, *, source) -> None:
             if URL.match(source):
                 info = ydl.extract_info(source, download=False, process=False)
 
+                if info is None:
+                    yield None
+                    return
+
                 if "entries" in info:
                     for entry in info["entries"]:
                         yield ydl.extract_info("https://youtu.be/" + entry["url"], download=False)
@@ -153,15 +157,16 @@ async def youtube(ctx: Context, *, source) -> None:
 
     try:
         for video in yt_results(source):
-            title = video["artist"] + " - " + video["track"] if video["artist"] and video["track"] else video["title"]
-            song = Song(title, video["duration"], video["url"], await download_image(video["thumbnails"][-1]["url"]))
+            if video is not None: # TODO kell else ág rendesen lekezelni az esetet, ha invalid az egész link
+                title = video["artist"] + " - " + video["track"] if video["artist"] and video["track"] else video["title"]
+                song = Song(title, video["duration"], video["url"], await download_image(video["thumbnails"][-1]["url"]))
 
-            queues[ctx.voice_client].add(song)
+                queues[ctx.voice_client].add(song)
 
-            await ctx.send(Response.get("QUEUE", song.title))
+                await ctx.send(Response.get("QUEUE", song.title))
 
-            if not ctx.voice_client.is_playing() and not ctx.voice_client.is_paused():
-                play_next(None, ctx.voice_client)
+                if not ctx.voice_client.is_playing() and not ctx.voice_client.is_paused():
+                    play_next(None, ctx.voice_client)
 
         
     except IndexError:
