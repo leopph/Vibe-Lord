@@ -76,7 +76,7 @@ async def seek(ctx: Context, seconds: int) -> None:
     elif not ctx.voice_client:
         await ctx.send(Response.get("NOT_IN_VOICE", ctx.author.mention))
 
-    elif ctx.author.voice.channel not in [client.channel for client in ctx.bot.voice_clients]:
+    elif ctx.author.voice.channel != ctx.voice_client.channel:
         await ctx.send(Response.get("USER_NOT_IN_VOICE", ctx.author.mention))
 
     elif not queues[ctx.voice_client].now_playing:
@@ -206,7 +206,7 @@ async def stop(ctx: Context) -> None:
     elif not ctx.voice_client:
         await ctx.send(Response.get("NOT_IN_VOICE", ctx.author.mention))
 
-    elif ctx.author.voice.channel not in [client.channel for client in ctx.bot.voice_clients]:
+    elif ctx.author.voice.channel != ctx.voice_client.channel:
         await ctx.send(Response.get("USER_NOT_IN_VOICE", ctx.author.mention))
 
     elif not queues[ctx.voice_client].now_playing:
@@ -227,7 +227,7 @@ async def pause(ctx: Context) -> None:
     elif not ctx.voice_client:
         await ctx.send(Response.get("NOT_IN_VOICE", ctx.author.mention))
 
-    elif ctx.author.voice.channel not in [client.channel for client in ctx.bot.voice_clients]:
+    elif ctx.author.voice.channel != ctx.voice_client.channel:
         await ctx.send(Response.get("USER_NOT_IN_VOICE", ctx.author.mention))
 
     elif not queues[ctx.voice_client].now_playing or not ctx.voice_client.is_playing():
@@ -248,7 +248,7 @@ async def resume(ctx: Context) -> None:
     elif not ctx.voice_client:
         await ctx.send(Response.get("NOT_IN_VOICE", ctx.author.mention))
 
-    elif ctx.author.voice.channel not in [client.channel for client in ctx.bot.voice_clients]:
+    elif ctx.author.voice.channel != ctx.voice_client.channel:
         await ctx.send(Response.get("USER_NOT_IN_VOICE", ctx.author.mention))
 
     elif not queues[ctx.voice_client].now_playing or not ctx.voice_client.is_paused():
@@ -324,7 +324,7 @@ async def skip(ctx: Context) -> None:
     elif not ctx.voice_client:
         await ctx.send(Response.get("NOT_IN_VOICE", ctx.author.mention))
 
-    elif ctx.author.voice.channel not in [client.channel for client in ctx.bot.voice_clients]:
+    elif ctx.author.voice.channel != ctx.voice_client.channel:
         await ctx.send(Response.get("USER_NOT_IN_VOICE", ctx.author.mention))
 
     elif not queues[ctx.voice_client].now_playing:
@@ -345,7 +345,7 @@ async def remove(ctx: Context, index: int) -> None:
     elif not ctx.voice_client:
         await ctx.send(Response.get("NOT_IN_VOICE", ctx.author.mention))
 
-    elif ctx.author.voice.channel not in [client.channel for client in ctx.bot.voice_clients]:
+    elif ctx.author.voice.channel != ctx.voice_client.channel:
         await ctx.send(Response.get("USER_NOT_IN_VOICE", ctx.author.mention))
 
     else:
