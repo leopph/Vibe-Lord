@@ -127,42 +127,43 @@ async def youtube(ctx: Context, *, source) -> None:
         await ctx.send(Response.get("USER_NOT_IN_VOICE", ctx.author.mention))
         return
 
-    try:
-        songs = set()
 
-        YDL_OPTIONS = {"format": "bestaudio", "quiet": "True", "ignoreerrors": "True"}
+    def yt_results(source: str) -> dict:
+        YDL_OPTS = {"format": "bestaudio", "quiet": "True", "ignoreerrors": "True"}
 
-        with YoutubeDL(YDL_OPTIONS) as ydl:
+        with YoutubeDL(YDL_OPTS) as ydl:
             if URL.match(source):
-                info = ydl.extract_info(source, download=False)
+                info = ydl.extract_info(source, download=False, process=False)
 
                 if "entries" in info:
-                    for video in info["entries"]:
-                        if video:
-                            title = video["artist"] + " - " + video["track"] if video["artist"] and video["track"] else video["title"]
-                            songs.add(Song(title, video["duration"], video["url"], await download_image(video["thumbnails"][-1]["url"])))
+                    for entry in info["entries"]:
+                        yield ydl.extract_info("https://youtu.be/" + entry["url"], download=False)
 
                 else:
-                    title = info["artist"] + " - " + info["track"] if info["artist"] and info["track"] else info["title"]
-                    songs.add(Song(title, info["duration"], info["url"], await download_image(info["thumbnails"][-1]["url"])))
+                    yield ydl.extract_info(source, download=False)
 
             else:
-                info = ydl.extract_info(f"ytsearch:{source}", download=False)['entries'][0]
-                title = info["artist"] + " - " + info["track"] if info["artist"] and info["track"] else info["title"]
-                songs.add(Song(title, info["duration"], info["url"], await download_image(info["thumbnails"][-1]["url"])))
+                yield ydl.extract_info(f"ytsearch:{source}", download=False)['entries'][0]
 
-        if not ctx.voice_client:
-            await ctx.message.author.voice.channel.connect()
-            queues[ctx.voice_client] = SongQueue()
 
-        for song in songs:
+    if not ctx.voice_client:
+        await ctx.message.author.voice.channel.connect()
+        queues[ctx.voice_client] = SongQueue()
+
+
+    try:
+        for video in yt_results(source):
+            title = video["artist"] + " - " + video["track"] if video["artist"] and video["track"] else video["title"]
+            song = Song(title, video["duration"], video["url"], await download_image(video["thumbnails"][-1]["url"]))
+
             queues[ctx.voice_client].add(song)
 
-        await ctx.send(Response.get("QUEUE", ", ".join([song.title for song in songs])))
+            await ctx.send(Response.get("QUEUE", song.title))
 
-        if not ctx.voice_client.is_playing():
-            play_next(None, ctx.voice_client)
-            
+            if not ctx.voice_client.is_playing():
+                play_next(None, ctx.voice_client)
+
+        
     except IndexError:
         await ctx.send(Response.get("NO_RESULT", ctx.author.mention))
 
@@ -284,7 +285,6 @@ async def disconnect(ctx: Context) -> None:
         await ctx.send(Response.get("NOT_IN_VOICE", ctx.message.author.mention))
 
     else:
-        del queues[ctx.voice_client]
         await ctx.voice_client.disconnect()
 
 
@@ -299,11 +299,16 @@ async def ef(ctx: Context) -> None:
 
 @bot.command(name="shutdown", aliases=["sd, shtdwn"], help="Shut the bot down")
 async def shutdown(ctx: Context) -> None:
+    if not await bot.is_owner(ctx.author):
+        return
+    
     if not ctx.author.voice or ctx.author.voice.channel not in ctx.guild.voice_channels or (ctx.voice_client and ctx.author.voice.channel != ctx.voice_client.channel):
         await ctx.send(Response.get("USER_NOT_IN_VOICE", ctx.author.mention))
         return
 
     for client in ctx.bot.voice_clients:
+        queues[client].clear()
+        client.stop()
         await client.disconnect()
 
     queues.clear()
