@@ -115,11 +115,11 @@
         "{0} HAS BEEN DESTROYED!"
     ],
 
-    "BAD_INDEX":
+    "BAD_DELETE_REQUEST":
     [
-        "That ain't it, {0}. There's no song at position {1} in the queue.",
-        "{0}, your wish to delete the {1}. song just can't be fulfilled.",
-        "I'm sorry, {0}, but I can't delete the {1}. song. It doesn't exist."
+        "That ain't it, {0}. Check them index for me please.",
+        "{0}, your wish to annihilate just can't be fulfilled.",
+        "I'm sorry, {0}, but I can't delete that. It don't exist, innit."
     ],
 
     "SHUFFLE":
@@ -138,5 +138,12 @@
         "I'm sorry, {0}, I could not find anything.",
         "{0}... bruv... Dis not even exist, innit?",
         "No results found. I'm sorry to have ruined your day, {0}."
+    ],
+
+    "BAD_SKIP_REQUEST":
+    [
+        "That number ain' it, {0}. Try that again, will you?",
+        "I don't think that's valid chief. Hey, look, everyone, {0} messed up!",
+        "Yea... right... Can't do that, {0}."
     ]
 }

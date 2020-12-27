@@ -5,7 +5,7 @@ import dotenv
 import aiohttp
 import tidalapi
 import re
-from discord import VoiceClient, File
+from discord import VoiceClient, File, voice_client
 from discord.ext.commands import Bot, Context, check
 from youtube_dl import YoutubeDL
 from response import Response
@@ -66,6 +66,13 @@ def playing():
 def queue_not_empty():
     def predicate(ctx: Context) -> bool:
         if ctx.voice_client not in queues or queues[ctx.voice_client].is_empty():
+            raise InvalidCommandConditionError(Response.get("QUEUE_EMPTY"))
+        return True
+    return check(predicate)
+
+def queue_not_empty_or_playing():
+    def predicate(ctx: Context) -> bool:
+        if ctx.voice_client not in queues or (queues[ctx.voice_client].is_empty() and queues[ctx.voice_client].now_playing is None):
             raise InvalidCommandConditionError(Response.get("QUEUE_EMPTY"))
         return True
     return check(predicate)
@@ -131,7 +138,7 @@ async def now_paying(ctx: Context) -> None:
 
 
 @bot_in_voice()
-@queue_not_empty()
+@queue_not_empty_or_playing()
 @bot.command(name="queue", aliases=["q", "que", "queueue"], help="Show songs in queue")
 async def show_queue(ctx: Context):
     await ctx.send("--- " + queues[ctx.voice_client].now_playing.title + " ---\n" + "\n".join([str(index + 1) + ". " + song.title for index, song in enumerate(queues[ctx.voice_client].queue)]))
@@ -140,7 +147,7 @@ async def show_queue(ctx: Context):
 
 
 @user_in_voice()
-@bot.command(name="youtube", aliases=["y"], help="Play track from YouTube")
+@bot.command(name="youtube", aliases=["y"], help="Queue track from YouTube")
 async def youtube(ctx: Context, *, source) -> None:
     def yt_results(source: str) -> dict:
         YDL_OPTS = {"format": "bestaudio", "quiet": "True", "ignoreerrors": "True"}
@@ -190,7 +197,7 @@ async def youtube(ctx: Context, *, source) -> None:
 
 
 @user_in_voice()
-@bot.command(name="tidal", aliases=["t"], help="Play track from Tidal")
+@bot.command(name="tidal", aliases=["t"], help="Queue track from Tidal")
 async def tidal(ctx: Context, *, source) -> None:
     try:
         track = tidal_session.search("track", source, limit=1).tracks[0]
@@ -217,10 +224,20 @@ async def tidal(ctx: Context, *, source) -> None:
 @user_in_voice()
 @bot_in_voice()
 @playing()
-@bot.command(name="stop", help="Stop playback if currently playing")
+@bot.command(name="stop", help="Stop playback and clear queue")
 async def stop(ctx: Context) -> None:
     queues[ctx.voice_client].clear()
     ctx.voice_client.stop()
+
+
+
+
+@user_in_voice()
+@bot_in_voice()
+@queue_not_empty()
+@bot.command(name="clear", brief="Clear queue", help="Remove all the songs from the queue. This does not stop current playback.")
+async def clear(ctx: Context) -> None:
+    queues[ctx.voice_client].clear()
 
 
 
@@ -289,8 +306,15 @@ async def shutdown(ctx: Context) -> None:
 @user_in_voice()
 @bot_in_voice()
 @playing()
-@bot.command(name="skip", help="Skip to the next song in queue")
-async def skip(ctx: Context) -> None:
+@bot.command(name="skip", brief="Skip songs in queue", help="If no arguments given, the bot skips to the next song. Otherwise, it skips the given amount of songs.")
+async def skip(ctx: Context, many: int = 1) -> None:
+    if many <= 0 or many > len(queues[ctx.voice_client].queue) + 1:
+        await ctx.send(Response.get("BAD_SKIP_REQUEST", ctx.author.mention))
+        return
+    
+    for i in range(many-1):
+        queues[ctx.voice_client].remove(0, 0)
+
     ctx.voice_client.stop()
     await ctx.send(Response.get("SKIP"))
 
@@ -299,15 +323,22 @@ async def skip(ctx: Context) -> None:
 
 @user_in_voice()
 @bot_in_voice()
-@bot.command(name="remove", aliases=["annihilate", "r"], help="Remove song from queue")
-async def remove(ctx: Context, index: int) -> None:
-    removed_song = queues[ctx.voice_client].remove(index - 1)
+@queue_not_empty()
+@bot.command(name="remove", aliases=["annihilate", "r"], help="Remove song(s) from queue")
+async def remove(ctx: Context, index: int, end_index: int = None) -> None:
+    if end_index is None:
+        end_index = index
+
+    removed_songs = queues[ctx.voice_client].remove(index - 1, end_index - 1)
     
-    if(removed_song):
-        await ctx.send(Response.get("SONG_REMOVED", removed_song.title))
+    if removed_songs is None:
+        await ctx.send(Response.get("BAD_DELETE_REQUEST", ctx.author.mention))
+        return
+
+    for song in removed_songs:
+        await ctx.send(Response.get("SONG_REMOVED", song.title))
     
-    else:
-        await ctx.send(Response.get("BAD_INDEX", ctx.author.mention, index))
+        
 
     
 

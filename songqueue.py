@@ -27,9 +27,9 @@ class SongQueue:
         self.__queue.append(song)
 
     
-    def remove(self, index: int) -> Union[Song, None]:
-        if len(self.__queue) > index >= 0:
-            return self.__queue.pop(index)
+    def remove(self, start: int, end: int) -> Union[tuple[Song], None]:
+        if len(self.__queue) > start >= 0 and len(self.__queue) > end >= 0 and end >= start:
+            return tuple([self.__queue.pop(start) for i in range(end - start + 1)])
         return None
 
     
