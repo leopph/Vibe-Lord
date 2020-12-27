@@ -3,9 +3,10 @@ from discord.ext.commands.core import is_owner
 from discord.ext.commands.errors import CommandError
 import dotenv
 import aiohttp
+import asyncio
 import tidalapi
 import re
-from discord import VoiceClient, File, voice_client
+from discord import VoiceClient, File
 from discord.ext.commands import Bot, Context, check
 from youtube_dl import YoutubeDL
 from response import Response
@@ -29,6 +30,7 @@ tidal_session.login(os.getenv("TIDAL_UNAME"), os.getenv("TIDAL_PWD"))
 bot = Bot(command_prefix=".")
 
 queues: dict[VoiceClient, SongQueue] = dict()
+download_tasks: dict[VoiceClient, list[asyncio.Task]] = dict()
 
 
 
@@ -147,7 +149,7 @@ async def show_queue(ctx: Context):
 
 
 @user_in_voice()
-@bot.command(name="youtube", aliases=["y"], help="Queue track from YouTube")
+@bot.command(name="youtube", aliases=["y"], brief="Queue track from YouTube", help="Queue a video's audio track from YouTube. Accepts direct video links, playlist links, and search queries.")
 async def youtube(ctx: Context, *, source) -> None:
     def yt_results(source: str) -> dict:
         YDL_OPTS = {"format": "bestaudio", "quiet": "True", "ignoreerrors": "True"}
@@ -171,27 +173,41 @@ async def youtube(ctx: Context, *, source) -> None:
                 yield ydl.extract_info(f"ytsearch:{source}", download=False)['entries'][0]
 
 
+    async def add_to_queue():
+        try:
+            for video in yt_results(source):
+                if video is not None: # TODO kell else ág rendesen lekezelni az esetet, ha invalid az egész link
+                    title = video["artist"] + " - " + video["track"] if video["artist"] and video["track"] else video["title"]
+                    song = Song(title, video["duration"], video["url"], await download_image(video["thumbnails"][-1]["url"]))
+
+                    queues[ctx.voice_client].add(song)
+
+                    await ctx.send(Response.get("QUEUE", song.title))
+
+                    if not ctx.voice_client.is_playing() and not ctx.voice_client.is_paused():
+                        play_next(None, ctx.voice_client)
+
+        except IndexError:
+            await ctx.send(Response.get("NO_RESULT", ctx.author.mention))
+
+
     if not ctx.voice_client:
         await ctx.message.author.voice.channel.connect()
         queues[ctx.voice_client] = SongQueue()
+        download_tasks[ctx.voice_client] = list()
 
+
+    task = bot.loop.create_task(add_to_queue())
+    download_tasks[ctx.voice_client].append(task)
 
     try:
-        for video in yt_results(source):
-            if video is not None: # TODO kell else ág rendesen lekezelni az esetet, ha invalid az egész link
-                title = video["artist"] + " - " + video["track"] if video["artist"] and video["track"] else video["title"]
-                song = Song(title, video["duration"], video["url"], await download_image(video["thumbnails"][-1]["url"]))
+        await task
 
-                queues[ctx.voice_client].add(song)
+    except asyncio.CancelledError:
+        pass
 
-                await ctx.send(Response.get("QUEUE", song.title))
-
-                if not ctx.voice_client.is_playing() and not ctx.voice_client.is_paused():
-                    play_next(None, ctx.voice_client)
-
-        
-    except IndexError:
-        await ctx.send(Response.get("NO_RESULT", ctx.author.mention))
+    else:
+        download_tasks[ctx.voice_client].remove(task)
 
 
 
@@ -208,6 +224,7 @@ async def tidal(ctx: Context, *, source) -> None:
         if not ctx.voice_client:
             await ctx.message.author.voice.channel.connect()
             queues[ctx.voice_client] = SongQueue()
+            download_tasks[ctx.voice_client] = list()
 
         queues[ctx.voice_client].add(song)
         await ctx.send(Response.get("QUEUE", song.title))
@@ -224,8 +241,9 @@ async def tidal(ctx: Context, *, source) -> None:
 @user_in_voice()
 @bot_in_voice()
 @playing()
-@bot.command(name="stop", help="Stop playback and clear queue")
+@bot.command(name="stop", brief="Stop music", help="Stop playback. This removes all songs from the queue, and stops background queueing processes.")
 async def stop(ctx: Context) -> None:
+    cancel_downloads(ctx.voice_client)
     queues[ctx.voice_client].clear()
     ctx.voice_client.stop()
 
@@ -235,8 +253,9 @@ async def stop(ctx: Context) -> None:
 @user_in_voice()
 @bot_in_voice()
 @queue_not_empty()
-@bot.command(name="clear", brief="Clear queue", help="Remove all the songs from the queue. This does not stop current playback.")
+@bot.command(name="clear", brief="Clear queue", help="Remove all the songs from the queue. This does not stop current playback, but stops background queueing processes.")
 async def clear(ctx: Context) -> None:
+    cancel_downloads(ctx.voice_client)
     queues[ctx.voice_client].clear()
 
 
@@ -270,14 +289,17 @@ async def resume(ctx: Context) -> None:
 async def connect(ctx: Context) -> None:
     await ctx.message.author.voice.channel.connect()
     queues[ctx.voice_client] = SongQueue()
+    download_tasks[ctx.voice_client] = list()
 
 
 
 
 @user_in_voice()
 @bot_in_voice()
-@bot.command(name="disconnect", aliases=["dc"], help="Disconnect from voice channel")
+@bot.command(name="disconnect", aliases=["dc"], brief="Disconnect from voice channel", help="Disconnect from the current voice channel. This stops all background queueing processes, and clears the server queue.")
 async def disconnect(ctx: Context) -> None:
+    cancel_downloads(ctx.voice_client)
+    del download_tasks[ctx.voice_client]
     del queues[ctx.voice_client]
     await ctx.voice_client.disconnect()
 
@@ -293,7 +315,8 @@ async def ef(ctx: Context) -> None:
 
 @is_owner()
 @bot.command(name="shutdown", aliases=["sd, shtdwn"], help="Shut the bot down")
-async def shutdown(ctx: Context) -> None:   
+async def shutdown(ctx: Context) -> None:
+    cancel_downloads()  
     for client in ctx.bot.voice_clients:
         await client.disconnect()
 
@@ -363,6 +386,19 @@ async def download_image(url: str) -> BytesIO:
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             return BytesIO(await response.read())
+
+
+
+
+def cancel_downloads(voice_client: VoiceClient = None):
+    if voice_client is None:
+        for task_list in download_tasks.values():
+            for task in task_list:
+                task.cancel()
+    
+    else:
+        for task in download_tasks[voice_client]:
+            task.cancel()
 
 
 
