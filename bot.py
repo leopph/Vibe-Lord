@@ -143,7 +143,9 @@ async def now_paying(ctx: Context) -> None:
 @queue_not_empty_or_playing()
 @bot.command(name="queue", aliases=["q", "que", "queueue"], help="Show songs in queue")
 async def show_queue(ctx: Context):
-    await ctx.send("--- " + queues[ctx.voice_client].now_playing.title + " ---\n" + "\n".join([str(index + 1) + ". " + song.title for index, song in enumerate(queues[ctx.voice_client].queue)]))
+    message = "--- " + queues[ctx.voice_client].now_playing.title + " ---\n" + "\n".join([str(index + 1) + ". " + song.title for index, song in enumerate(queues[ctx.voice_client].queue)])
+    for sub_message in string_splitter(message, "\n", 2000):
+        await ctx.send(sub_message)
 
 
 
@@ -399,6 +401,27 @@ def cancel_downloads(voice_client: VoiceClient = None):
     else:
         for task in download_tasks[voice_client]:
             task.cancel()
+
+
+
+
+def string_splitter(string: str, delim: str, amount: int):
+    ret = str()
+    last_word = str()
+
+    for char in string:
+        last_word += char
+
+        if char == delim:
+            if len(ret + last_word) > amount:
+                yield ret
+                ret = last_word
+            else:
+                ret += last_word
+
+            last_word = str()
+
+    yield ret + last_word
 
 
 
