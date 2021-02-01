@@ -179,8 +179,7 @@ async def youtube(ctx: Context, *, source) -> None:
         try:
             for video in yt_results(source):
                 if video is not None: # TODO kell else ág rendesen lekezelni az esetet, ha invalid az egész link
-                    title = video["artist"] + " - " + video["track"] if video["artist"] and video["track"] else video["title"]
-                    song = Song(title, video["duration"], video["url"], await download_image(video["thumbnails"][-1]["url"]))
+                    song = Song(video["title"], video["duration"], video["url"], await download_image(video["thumbnails"][-1]["url"]))
 
                     queues[ctx.voice_client].add(song)
 
