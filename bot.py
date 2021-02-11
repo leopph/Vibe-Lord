@@ -24,8 +24,8 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 URL = re.compile(r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
 
-tidal_session = tidalapi.Session()
-tidal_session.login(os.getenv("TIDAL_UNAME"), os.getenv("TIDAL_PWD"))
+'''tidal_session = tidalapi.Session()
+tidal_session.login(os.getenv("TIDAL_UNAME"), os.getenv("TIDAL_PWD"))'''
 
 bot = Bot(command_prefix=".")
 
@@ -151,7 +151,7 @@ async def show_queue(ctx: Context):
 
 
 @user_in_voice()
-@bot.command(name="youtube", aliases=["y"], brief="Queue track from YouTube", help="Queue a video's audio track from YouTube. Accepts direct video links, playlist links, and search queries.")
+@bot.command(name="play", aliases=["p", "y", "youtube"], brief="Queue track from YouTube", help="Queue a video's audio track from YouTube. Accepts direct video links, playlist links, and search queries.")
 async def youtube(ctx: Context, *, source) -> None:
     def yt_results(source: str) -> dict:
         YDL_OPTS = {"format": "bestaudio", "quiet": "True", "ignoreerrors": "True"}
@@ -213,7 +213,7 @@ async def youtube(ctx: Context, *, source) -> None:
 
 
 
-@user_in_voice()
+'''@user_in_voice()
 @bot.command(name="tidal", aliases=["t"], help="Queue track from Tidal")
 async def tidal(ctx: Context, *, source) -> None:
     try:
@@ -234,7 +234,7 @@ async def tidal(ctx: Context, *, source) -> None:
             play_next(None, ctx.voice_client)
 
     except IndexError:
-        await ctx.send(Response.get("NO_RESULT", ctx.author.mention))
+        await ctx.send(Response.get("NO_RESULT", ctx.author.mention))'''
 
 
 
