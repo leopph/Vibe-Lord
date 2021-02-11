@@ -4,7 +4,7 @@ from discord.ext.commands.errors import CommandError
 import dotenv
 import aiohttp
 import asyncio
-import tidalapi
+#import tidalapi
 import re
 from discord import VoiceClient, File
 from discord.ext.commands import Bot, Context, check
