@@ -7,6 +7,7 @@ class SongQueue:
     def __init__(self):
         self.__now_playing: Union[None, Song] = None
         self.__queue: list[Song] = list()
+        self.__loop: bool = False
 
 
     @property
@@ -38,6 +39,9 @@ class SongQueue:
 
     
     def next(self) -> None:
+        if self.__loop:
+            return
+
         if self.is_empty():
             if self.__now_playing:
                 self.__now_playing = None
@@ -52,3 +56,11 @@ class SongQueue:
             raise Exception("Cannot shuffle empty queue!")
 
         random.shuffle(self.__queue)
+
+    @property
+    def loop(self) -> bool:
+        return self.__loop
+
+    @loop.setter
+    def loop(self, value: bool) -> None:
+        self.__loop = value

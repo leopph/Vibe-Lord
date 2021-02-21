@@ -361,10 +361,29 @@ async def remove(ctx: Context, index: int, end_index: int = None) -> None:
 
     for song in removed_songs:
         await ctx.send(Response.get("SONG_REMOVED", song.title))
-    
-        
 
-    
+
+
+
+@user_in_voice()
+@bot_in_voice()
+@bot.command(name="loop", help="[WIP] Check or set whether the bot is looping a track")
+async def loop(ctx: Context, state: str="") -> None:
+    if state == "":
+        await ctx.send("Looping is currently " + ("on" if queues[ctx.voice_client].loop else "off") + ".")
+
+    elif state.lower() == "on":
+        queues[ctx.voice_client].loop = True
+        await ctx.send("Looping enabled.")
+
+    elif state.lower() == "off":
+        queues[ctx.voice_client].loop = False
+        await ctx.send("Looping disabled.")
+
+    else:
+        await ctx.send("Invalid argument '" + state + "'.")
+
+
 
 
 def play_next(error: Exception, voice_client: VoiceClient) -> None:
