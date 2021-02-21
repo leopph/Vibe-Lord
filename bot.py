@@ -143,7 +143,11 @@ async def now_paying(ctx: Context) -> None:
 @queue_not_empty_or_playing()
 @bot.command(name="queue", aliases=["q", "que", "queueue"], help="Show songs in queue")
 async def show_queue(ctx: Context):
-    message = "--- " + queues[ctx.voice_client].now_playing.title + " ---\n" + "\n".join([str(index + 1) + ". " + song.title for index, song in enumerate(queues[ctx.voice_client].queue)])
+    message =   (":arrows_counterclockwise: " if queues[ctx.voice_client].loop else "") +\
+                "--- " + queues[ctx.voice_client].now_playing.title + " ---" +\
+                (" :arrows_counterclockwise:" if queues[ctx.voice_client].loop else "") + "\n" +\
+                "\n".join([str(index + 1) + ". " + song.title for index, song in enumerate(queues[ctx.voice_client].queue)])
+
     for sub_message in string_splitter(message, "\n", 2000):
         await ctx.send(sub_message)
 
@@ -247,6 +251,7 @@ async def stop(ctx: Context) -> None:
     cancel_downloads(ctx.voice_client)
     queues[ctx.voice_client].clear()
     ctx.voice_client.stop()
+    # TODO when looping this doesnt stop
 
 
 
@@ -335,12 +340,17 @@ async def skip(ctx: Context, many: int = 1) -> None:
     if many <= 0 or many > len(queues[ctx.voice_client].queue) + 1:
         await ctx.send(Response.get("BAD_SKIP_REQUEST", ctx.author.mention))
         return
+
+    old_loop_state: bool = queues[ctx.voice_client].loop
+    queues[ctx.voice_client].loop = False
     
     for i in range(many-1):
         queues[ctx.voice_client].remove(0, 0)
 
     ctx.voice_client.stop()
     await ctx.send(Response.get("SKIP"))
+
+    queues[ctx.voice_client].loop = old_loop_state
 
 
 

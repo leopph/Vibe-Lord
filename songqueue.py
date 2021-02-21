@@ -39,7 +39,7 @@ class SongQueue:
 
     
     def next(self) -> None:
-        if self.__loop:
+        if self.__loop and self.__now_playing is not None:
             return
 
         if self.is_empty():
