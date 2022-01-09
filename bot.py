@@ -248,10 +248,19 @@ async def tidal(ctx: Context, *, source) -> None:
 @playing()
 @bot.command(name="stop", brief="Stop music", help="Stop playback. This removes all songs from the queue, and stops background queueing processes.")
 async def stop(ctx: Context) -> None:
+    # Stop downloads for this queue and clear it
     cancel_downloads(ctx.voice_client)
     queues[ctx.voice_client].clear()
+    # Save loop state and turn looping off
+    loop = queues[ctx.voice_client].loop
+    queues[ctx.voice_client].loop = False
+    # Since looping is off and the queue is empty, this will set now_playing to None
+    queues[ctx.voice_client].next()
+    # Restore loop state
+    queues[ctx.voice_client].loop = loop
+    # Now we stop playback and invoke the callback, which will not start a new song
+    # because now_playing is now None and the queue is empty
     ctx.voice_client.stop()
-    # TODO when looping this doesnt stop
 
 
 
@@ -341,16 +350,25 @@ async def skip(ctx: Context, many: int = 1) -> None:
         await ctx.send(Response.get("BAD_SKIP_REQUEST", ctx.author.mention))
         return
 
-    old_loop_state: bool = queues[ctx.voice_client].loop
-    queues[ctx.voice_client].loop = False
-    
-    for i in range(many-1):
-        queues[ctx.voice_client].remove(0, 0)
+    queue = queues[ctx.voice_client]
+    # Save loop state and turn looping off
+    loop = queue.loop
+    queue.loop = False
 
+    # If we were originally looping, we drain all tracks
+    # If not, we drain one less
+    count = many if loop else many - 1
+    for _ in range(count):
+        queues[ctx.voice_client].next()
+    
+    # Restore loop state
+    queue.loop = loop
+
+    # If we're looping this will not change now_playing, so we start playing exactly the track we skipped to
+    # If we're not looping, this will skip one more track before restarting playback, playing exactly the track we skipped to
+    # This is because how we drained the tracks above
     ctx.voice_client.stop()
     await ctx.send(Response.get("SKIP"))
-
-    queues[ctx.voice_client].loop = old_loop_state
 
 
 
@@ -403,9 +421,9 @@ def play_next(error: Exception, voice_client: VoiceClient) -> None:
 
     if voice_client not in queues:
         return
-    
-    queues[voice_client].next()
 
+    queues[voice_client].next()
+        
     if queues[voice_client].now_playing:      
         voice_client.play(source=queues[voice_client].now_playing.new_source(**FFMPEG_OPTIONS), after=lambda error: play_next(error, voice_client))
 

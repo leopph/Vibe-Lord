@@ -20,6 +20,16 @@ class SongQueue:
         return self.__queue[:]
 
 
+    @property
+    def loop(self) -> bool:
+        return self.__loop
+
+
+    @loop.setter
+    def loop(self, value: bool) -> None:
+        self.__loop = value
+
+
     def is_empty(self) -> bool:
         return len(self.__queue) == 0
 
@@ -37,30 +47,18 @@ class SongQueue:
     def clear(self) -> None:
         self.__queue.clear()
 
+
+    def shuffle(self) -> None:
+        random.shuffle(self.__queue)
+
     
     def next(self) -> None:
         if self.__loop and self.__now_playing is not None:
             return
 
-        if self.is_empty():
-            if self.__now_playing:
-                self.__now_playing = None
-            else:
-                raise Exception("Queue is already depleted!")
-        else:
+        if not self.is_empty():
             self.__now_playing = self.__queue.pop(0)
+            return
 
-
-    def shuffle(self) -> None:
-        if self.is_empty():
-            raise Exception("Cannot shuffle empty queue!")
-
-        random.shuffle(self.__queue)
-
-    @property
-    def loop(self) -> bool:
-        return self.__loop
-
-    @loop.setter
-    def loop(self, value: bool) -> None:
-        self.__loop = value
+        if self.__now_playing:
+            self.__now_playing = None
