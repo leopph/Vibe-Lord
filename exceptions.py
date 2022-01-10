@@ -1,7 +1,7 @@
 from discord.ext.commands import CommandError
 
 
-class InvalidCommandConditionError(CommandError):
+class CheckFailedError(CommandError):
     def __init__(self, text: str) -> None:
         self._text = text
 

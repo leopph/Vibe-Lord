@@ -3,110 +3,138 @@ import asyncio
 import dotenv
 import os
 import re
+from datetime import datetime
 from discord import VoiceClient, File
 from discord.ext.commands import Bot, Context, check
 from discord.ext.commands.core import is_owner
 from discord.ext.commands.errors import CommandError
-from exceptions import InvalidCommandConditionError
+from exceptions import CheckFailedError
 from io import BytesIO
 from response import Response
 from song import Song
 from songqueue import SongQueue
+from typing import Final
 from youtube_dl import YoutubeDL
 
 
 dotenv.load_dotenv()
 
-TOKEN = os.getenv("DISCORD_TOKEN")
-FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-URL = re.compile(r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
+TOKEN: Final = os.getenv("DISCORD_TOKEN")
+FFMPEG_OPTIONS: Final = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+URL: Final = re.compile(r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
 
-bot = Bot(command_prefix=".")
+bot: Final = Bot(command_prefix="$")
 
-queues: dict[VoiceClient, SongQueue] = dict()
-download_tasks: dict[VoiceClient, list[asyncio.Task]] = dict()
+queues: Final[dict[VoiceClient, SongQueue]] = dict()
+download_tasks: Final[dict[VoiceClient, list[asyncio.Task]]] = dict()
 
 
-def user_in_voice():
-    def predicate(ctx: Context) -> bool:
-        if (ctx.author.voice is None
-            or ctx.author.voice.channel not in ctx.guild.voice_channels
-                or (ctx.voice_client is not None and ctx.voice_client.channel != ctx.author.voice.channel)):
-            raise InvalidCommandConditionError(Response.get("USER_NOT_IN_VOICE", ctx.author.mention))
+def in_guild(ctx: Context) -> bool:
+    if ctx.guild is None:
+        raise CheckFailedError(Response.get("DM"), ctx.author.name)
+    return True
+
+
+def member_in_voice(ctx: Context) -> bool:
+    if ctx.author.voice is None or ctx.author.voice.channel is None:
+        raise CheckFailedError(Response.get("USER_NOT_IN_VOICE", ctx.author.mention))
+    return True
+
+
+def bot_in_voice(ctx: Context) -> bool:
+    if ctx.voice_client is None:
+        raise CheckFailedError(Response.get("NOT_IN_VOICE", ctx.author.mention))
+    return True
+
+
+def bot_not_in_voice(ctx: Context) -> bool:
+    try:
+        bot_in_voice(ctx)
+    except CheckFailedError:
         return True
-    return check(predicate)
+    raise CheckFailedError(Response.get("ALREADY_IN_VOICE", ctx.message.author.mention))
 
 
-def bot_in_voice():
-    def predicate(ctx: Context) -> bool:
-        if ctx.voice_client is None:
-            raise InvalidCommandConditionError(Response.get("NOT_IN_VOICE", ctx.author.mention))
+def member_and_bot_in_same_voice(ctx: Context) -> bool:
+    if bot_in_voice(ctx) and member_in_voice(ctx) and ctx.voice_client.channel == ctx.author.voice.channel:
         return True
-    return check(predicate)
+    raise CheckFailedError(Response.get("DIFFERENT_VOICE_CHANNELS", ctx.author.mention, ctx.voice_client.channel.name))
 
 
-def bot_not_in_voice():
-    def predicate(ctx: Context) -> bool:
-        if ctx.voice_client is not None:
-            raise InvalidCommandConditionError(Response.get("ALREADY_IN_VOICE", ctx.message.author.mention))
-        return True
-    return check(predicate)
+def playing(ctx: Context) -> bool:
+    if queues[ctx.voice_client].now_playing is None:
+        raise CheckFailedError(Response.get("NOT_PLAYING", ctx.author.mention))
+    return True
 
 
-def playing():
-    def predicate(ctx: Context) -> bool:
-        if ctx.voice_client not in queues or queues[ctx.voice_client].now_playing is None:
-            raise InvalidCommandConditionError(Response.get("NOT_PLAYING", ctx.author.mention))
-        return True
-    return check(predicate)
+def member_in_voice_and_member_and_bot_in_same_voice_or_bot_not_in_voice(ctx: Context) -> bool:
+    member_in_voice(ctx)
+    try:
+        bot_in_voice(ctx)
+        return member_and_bot_in_same_voice(ctx)
+    except CheckFailedError:
+        try:
+            bot_in_voice(ctx)
+        except CheckFailedError:
+            return True
+        raise
 
 
-def queue_not_empty():
-    def predicate(ctx: Context) -> bool:
-        if ctx.voice_client not in queues or queues[ctx.voice_client].is_empty():
-            raise InvalidCommandConditionError(Response.get("QUEUE_EMPTY"))
-        return True
-    return check(predicate)
+def queue_not_empty(ctx: Context) -> bool:
+    if queues[ctx.voice_client].is_empty():
+        raise CheckFailedError(Response.get("QUEUE_EMPTY"))
+    return True
 
 
-def queue_not_empty_or_playing():
-    def predicate(ctx: Context) -> bool:
-        if ctx.voice_client not in queues or (queues[ctx.voice_client].is_empty() and queues[ctx.voice_client].now_playing is None):
-            raise InvalidCommandConditionError(Response.get("QUEUE_EMPTY"))
-        return True
-    return check(predicate)
+def queue_not_empty_or_playing(ctx: Context) -> bool:
+    try:
+        return queue_not_empty(ctx)
+    except CheckFailedError:
+        return playing(ctx)
 
 
-def paused():
-    def predicate(ctx: Context) -> bool:
-        if ctx.voice_client is None or not ctx.voice_client.is_paused():
-            raise InvalidCommandConditionError(Response.get("NOT_PAUSED", ctx.message.author.mention))
-        return True
-    return check(predicate)
+def paused(ctx: Context) -> bool:
+    if ctx.voice_client.is_paused():
+        raise CheckFailedError(Response.get("NOT_PAUSED", ctx.message.author.mention))
+    return True
+
+
+def log(msg: str) -> None:
+    now = datetime.now()
+    date_time = now.strftime("%Y/%m/%d %H:%M:%S")
+    print("[" + date_time + "] " + msg)
 
 
 @bot.event
 async def on_ready():
-    print("Ready.")
+    log("Ready.")
 
 
 @bot.event
 async def on_command_error(ctx: Context, error: CommandError) -> None:
-    await ctx.send(error)
+    if isinstance(error, CheckFailedError):
+        await ctx.send(error)
+        return
+    log(error.text)
+    await ctx.send(Response.get("UNKNOWN_ERROR "))
+    
 
-
-@user_in_voice()
-@bot_in_voice()
-@queue_not_empty()
+@check(queue_not_empty)
+@check(member_and_bot_in_same_voice)
+@check(bot_in_voice)
+@check(member_in_voice)
+@check(in_guild)
 @bot.command(name="shuffle", help="Randomly reorder the current queue")
 async def shuffle(ctx: Context) -> None:
     queues[ctx.voice_client].shuffle()
     await ctx.send(Response.get("SHUFFLE"))
 
 
-@user_in_voice()
-@bot_in_voice()
-@playing()
+@check(playing)
+@check(member_and_bot_in_same_voice)
+@check(bot_in_voice)
+@check(member_in_voice)
+@check(in_guild)
 @bot.command(name="seek", help="Skip to a certain part of the current song")
 async def seek(ctx: Context, seconds: int) -> None:   
     if queues[ctx.voice_client].now_playing.length >= seconds >= 0:
@@ -118,15 +146,17 @@ async def seek(ctx: Context, seconds: int) -> None:
     await ctx.send(Response.get("BAD_TIMESTAMP", ctx.author.mention))
 
 
-@bot_in_voice()
-@playing()
+@check(playing)
+@check(bot_in_voice)
+@check(in_guild)
 @bot.command(name="nowplaying", aliases=["np"], help="Show the current song")
 async def now_paying(ctx: Context) -> None:
     await ctx.send(f"Now playing: {queues[ctx.voice_client].now_playing.title}", file=File(queues[ctx.voice_client].now_playing.image, "cover.jpg"))
 
 
-@bot_in_voice()
-@queue_not_empty_or_playing()
+@check(queue_not_empty_or_playing)
+@check(bot_in_voice)
+@check(in_guild)
 @bot.command(name="queue", aliases=["q", "que", "queueue"], help="Show songs in queue")
 async def show_queue(ctx: Context):
     message =   (":arrows_counterclockwise: " if queues[ctx.voice_client].loop else "") +\
@@ -138,7 +168,8 @@ async def show_queue(ctx: Context):
         await ctx.send(sub_message)
 
 
-@user_in_voice()
+@check(member_in_voice_and_member_and_bot_in_same_voice_or_bot_not_in_voice)
+@check(in_guild)
 @bot.command(name="play", aliases=["p", "y", "youtube"], brief="Queue track from YouTube", help="Queue a video's audio track from YouTube. Accepts direct video links, playlist links, and search queries.")
 async def youtube(ctx: Context, *, source) -> None:
     def yt_results(source: str) -> dict:
@@ -199,9 +230,11 @@ async def youtube(ctx: Context, *, source) -> None:
         download_tasks[ctx.voice_client].remove(task)
 
 
-@user_in_voice()
-@bot_in_voice()
-@playing()
+@check(playing)
+@check(member_and_bot_in_same_voice)
+@check(member_in_voice)
+@check(bot_in_voice)
+@check(in_guild)
 @bot.command(name="stop", brief="Stop music", help="Stop playback. This removes all songs from the queue, and stops background queueing processes.")
 async def stop(ctx: Context) -> None:
     # Stop downloads for this queue and clear it
@@ -219,35 +252,42 @@ async def stop(ctx: Context) -> None:
     ctx.voice_client.stop()
 
 
-@user_in_voice()
-@bot_in_voice()
-@queue_not_empty()
+@check(queue_not_empty)
+@check(member_and_bot_in_same_voice)
+@check(member_in_voice)
+@check(bot_in_voice)
+@check(in_guild)
 @bot.command(name="clear", brief="Clear queue", help="Remove all the songs from the queue. This does not stop current playback, but stops background queueing processes.")
 async def clear(ctx: Context) -> None:
     cancel_downloads(ctx.voice_client)
     queues[ctx.voice_client].clear()
 
 
-@user_in_voice()
-@bot_in_voice()
-@playing()
+@check(playing)
+@check(member_and_bot_in_same_voice)
+@check(member_in_voice)
+@check(bot_in_voice)
+@check(in_guild)
 @bot.command(name="pause", help="Pause playback")
 async def pause(ctx: Context) -> None:
     ctx.voice_client.pause()
     await ctx.send(Response.get("PAUSE"))
 
 
-@user_in_voice()
-@bot_in_voice()
-@paused()
+@check(paused)
+@check(member_and_bot_in_same_voice)
+@check(member_in_voice)
+@check(bot_in_voice)
+@check(in_guild)
 @bot.command(name="resume", help="Resume playback")
 async def resume(ctx: Context) -> None:
     ctx.voice_client.resume()
     await ctx.send(Response.get("RESUME"))
 
 
-@user_in_voice()
-@bot_not_in_voice()
+@check(member_in_voice)
+@check(bot_not_in_voice)
+@check(in_guild)
 @bot.command(name="connect", aliases=["c"], help="Connect to voice channel")
 async def connect(ctx: Context) -> None:
     await ctx.message.author.voice.channel.connect()
@@ -255,8 +295,10 @@ async def connect(ctx: Context) -> None:
     download_tasks[ctx.voice_client] = list()
 
 
-@user_in_voice()
-@bot_in_voice()
+@check(member_and_bot_in_same_voice)
+@check(member_in_voice)
+@check(bot_in_voice)
+@check(in_guild)
 @bot.command(name="disconnect", aliases=["dc"], brief="Disconnect from voice channel", help="Disconnect from the current voice channel. This stops all background queueing processes, and clears the server queue.")
 async def disconnect(ctx: Context) -> None:
     cancel_downloads(ctx.voice_client)
@@ -271,7 +313,7 @@ async def ef(ctx: Context) -> None:
 
 
 @is_owner()
-@bot.command(name="shutdown", aliases=["sd, shtdwn"], help="Shut the bot down")
+@bot.command(name="shutdown", aliases=["sd, shtdwn, exit"], help="Shut the bot down")
 async def shutdown(ctx: Context) -> None:
     cancel_downloads()  
     for client in ctx.bot.voice_clients:
@@ -281,9 +323,11 @@ async def shutdown(ctx: Context) -> None:
     await ctx.bot.logout()
 
 
-@user_in_voice()
-@bot_in_voice()
-@playing()
+@check(playing)
+@check(member_and_bot_in_same_voice)
+@check(member_in_voice)
+@check(bot_in_voice)
+@check(in_guild)
 @bot.command(name="skip", brief="Skip songs in queue", help="If no arguments given, the bot skips to the next song. Otherwise, it skips the given amount of songs.")
 async def skip(ctx: Context, many: int = 1) -> None:
     if many <= 0 or many > len(queues[ctx.voice_client].queue) + 1:
@@ -311,9 +355,11 @@ async def skip(ctx: Context, many: int = 1) -> None:
     await ctx.send(Response.get("SKIP"))
 
 
-@user_in_voice()
-@bot_in_voice()
-@queue_not_empty()
+@check(queue_not_empty)
+@check(member_and_bot_in_same_voice)
+@check(member_in_voice)
+@check(bot_in_voice)
+@check(in_guild)
 @bot.command(name="remove", aliases=["annihilate", "r"], help="Remove song(s) from queue")
 async def remove(ctx: Context, index: int, end_index: int = None) -> None:
     if end_index is None:
@@ -329,8 +375,10 @@ async def remove(ctx: Context, index: int, end_index: int = None) -> None:
         await ctx.send(Response.get("SONG_REMOVED", song.title))
 
 
-@user_in_voice()
-@bot_in_voice()
+@check(member_and_bot_in_same_voice)
+@check(member_in_voice)
+@check(bot_in_voice)
+@check(in_guild)
 @bot.command(name="loop", help="[WIP] Check or set whether the bot is looping a track")
 async def loop(ctx: Context, state: str="") -> None:
     if state == "":

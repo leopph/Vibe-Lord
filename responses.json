@@ -145,5 +145,20 @@
         "That number ain' it, {0}. Try that again, will you?",
         "I don't think that's valid chief. Hey, look, everyone, {0} messed up!",
         "Yea... right... Can't do that, {0}."
+    ],
+
+    "UNKNOWN_ERROR":
+    [
+        "Yea so... Something happened. And it ain good thats fho sho."
+    ],
+
+    "DM":
+    [
+        "Sorry {0}, I can only do that in servers, and as you can see, this is kinda not a server."
+    ],
+
+    "DIFFERENT_VOICE_CHANNELS":
+    [
+        "Hah, you tryna be sneaky, {0}? You have no power over me there! Come and face me in {1}!"
     ]
 }
