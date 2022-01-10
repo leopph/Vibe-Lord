@@ -1,21 +1,18 @@
-import os
-from discord.ext.commands.core import is_owner
-from discord.ext.commands.errors import CommandError
-import dotenv
 import aiohttp
 import asyncio
-#import tidalapi
+import dotenv
+import os
 import re
 from discord import VoiceClient, File
 from discord.ext.commands import Bot, Context, check
-from youtube_dl import YoutubeDL
-from response import Response
-from songqueue import SongQueue
-from song import Song
-from io import BytesIO
+from discord.ext.commands.core import is_owner
+from discord.ext.commands.errors import CommandError
 from exceptions import InvalidCommandConditionError
-
-
+from io import BytesIO
+from response import Response
+from song import Song
+from songqueue import SongQueue
+from youtube_dl import YoutubeDL
 
 
 dotenv.load_dotenv()
@@ -24,15 +21,10 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 URL = re.compile(r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
 
-'''tidal_session = tidalapi.Session()
-tidal_session.login(os.getenv("TIDAL_UNAME"), os.getenv("TIDAL_PWD"))'''
-
 bot = Bot(command_prefix=".")
 
 queues: dict[VoiceClient, SongQueue] = dict()
 download_tasks: dict[VoiceClient, list[asyncio.Task]] = dict()
-
-
 
 
 def user_in_voice():
@@ -44,12 +36,14 @@ def user_in_voice():
         return True
     return check(predicate)
 
+
 def bot_in_voice():
     def predicate(ctx: Context) -> bool:
         if ctx.voice_client is None:
             raise InvalidCommandConditionError(Response.get("NOT_IN_VOICE", ctx.author.mention))
         return True
     return check(predicate)
+
 
 def bot_not_in_voice():
     def predicate(ctx: Context) -> bool:
@@ -58,12 +52,14 @@ def bot_not_in_voice():
         return True
     return check(predicate)
 
+
 def playing():
     def predicate(ctx: Context) -> bool:
         if ctx.voice_client not in queues or queues[ctx.voice_client].now_playing is None:
             raise InvalidCommandConditionError(Response.get("NOT_PLAYING", ctx.author.mention))
         return True
     return check(predicate)
+
 
 def queue_not_empty():
     def predicate(ctx: Context) -> bool:
@@ -72,12 +68,14 @@ def queue_not_empty():
         return True
     return check(predicate)
 
+
 def queue_not_empty_or_playing():
     def predicate(ctx: Context) -> bool:
         if ctx.voice_client not in queues or (queues[ctx.voice_client].is_empty() and queues[ctx.voice_client].now_playing is None):
             raise InvalidCommandConditionError(Response.get("QUEUE_EMPTY"))
         return True
     return check(predicate)
+
 
 def paused():
     def predicate(ctx: Context) -> bool:
@@ -87,20 +85,14 @@ def paused():
     return check(predicate)
 
 
-
-
 @bot.event
 async def on_ready():
     print("Ready.")
 
 
-
-
 @bot.event
 async def on_command_error(ctx: Context, error: CommandError) -> None:
     await ctx.send(error)
-
-
 
 
 @user_in_voice()
@@ -110,8 +102,6 @@ async def on_command_error(ctx: Context, error: CommandError) -> None:
 async def shuffle(ctx: Context) -> None:
     queues[ctx.voice_client].shuffle()
     await ctx.send(Response.get("SHUFFLE"))
-
-
 
 
 @user_in_voice()
@@ -128,15 +118,11 @@ async def seek(ctx: Context, seconds: int) -> None:
     await ctx.send(Response.get("BAD_TIMESTAMP", ctx.author.mention))
 
 
-
-
 @bot_in_voice()
 @playing()
 @bot.command(name="nowplaying", aliases=["np"], help="Show the current song")
 async def now_paying(ctx: Context) -> None:
     await ctx.send(f"Now playing: {queues[ctx.voice_client].now_playing.title}", file=File(queues[ctx.voice_client].now_playing.image, "cover.jpg"))
-
-
 
 
 @bot_in_voice()
@@ -150,8 +136,6 @@ async def show_queue(ctx: Context):
 
     for sub_message in string_splitter(message, "\n", 2000):
         await ctx.send(sub_message)
-
-
 
 
 @user_in_voice()
@@ -215,34 +199,6 @@ async def youtube(ctx: Context, *, source) -> None:
         download_tasks[ctx.voice_client].remove(task)
 
 
-
-
-'''@user_in_voice()
-@bot.command(name="tidal", aliases=["t"], help="Queue track from Tidal")
-async def tidal(ctx: Context, *, source) -> None:
-    try:
-        track = tidal_session.search("track", source, limit=1).tracks[0]
-        title = ", ".join([artist.name for artist in track.artists]) + " - " + track.name
-        url = tidal_session.get_track_url(track.id)
-        song = Song(title, track.duration, url, await download_image(track.album.image))
-
-        if not ctx.voice_client:
-            await ctx.message.author.voice.channel.connect()
-            queues[ctx.voice_client] = SongQueue()
-            download_tasks[ctx.voice_client] = list()
-
-        queues[ctx.voice_client].add(song)
-        await ctx.send(Response.get("QUEUE", song.title))
-
-        if not ctx.voice_client.is_playing() and not ctx.voice_client.is_paused():
-            play_next(None, ctx.voice_client)
-
-    except IndexError:
-        await ctx.send(Response.get("NO_RESULT", ctx.author.mention))'''
-
-
-
-
 @user_in_voice()
 @bot_in_voice()
 @playing()
@@ -263,8 +219,6 @@ async def stop(ctx: Context) -> None:
     ctx.voice_client.stop()
 
 
-
-
 @user_in_voice()
 @bot_in_voice()
 @queue_not_empty()
@@ -272,8 +226,6 @@ async def stop(ctx: Context) -> None:
 async def clear(ctx: Context) -> None:
     cancel_downloads(ctx.voice_client)
     queues[ctx.voice_client].clear()
-
-
 
 
 @user_in_voice()
@@ -285,8 +237,6 @@ async def pause(ctx: Context) -> None:
     await ctx.send(Response.get("PAUSE"))
 
 
-
-
 @user_in_voice()
 @bot_in_voice()
 @paused()
@@ -296,8 +246,6 @@ async def resume(ctx: Context) -> None:
     await ctx.send(Response.get("RESUME"))
 
 
-
-
 @user_in_voice()
 @bot_not_in_voice()
 @bot.command(name="connect", aliases=["c"], help="Connect to voice channel")
@@ -305,8 +253,6 @@ async def connect(ctx: Context) -> None:
     await ctx.message.author.voice.channel.connect()
     queues[ctx.voice_client] = SongQueue()
     download_tasks[ctx.voice_client] = list()
-
-
 
 
 @user_in_voice()
@@ -319,13 +265,9 @@ async def disconnect(ctx: Context) -> None:
     await ctx.voice_client.disconnect()
 
 
-
-
 @bot.command(name="f", aliases=["F"], help="Pay respects")
 async def ef(ctx: Context) -> None:
     await ctx.send(Response.get("F", ctx.message.author.mention))
-
-
 
 
 @is_owner()
@@ -337,8 +279,6 @@ async def shutdown(ctx: Context) -> None:
 
     await ctx.send(Response.get("GOODBYE"))
     await ctx.bot.logout()
-
-
 
 
 @user_in_voice()
@@ -371,8 +311,6 @@ async def skip(ctx: Context, many: int = 1) -> None:
     await ctx.send(Response.get("SKIP"))
 
 
-
-
 @user_in_voice()
 @bot_in_voice()
 @queue_not_empty()
@@ -389,8 +327,6 @@ async def remove(ctx: Context, index: int, end_index: int = None) -> None:
 
     for song in removed_songs:
         await ctx.send(Response.get("SONG_REMOVED", song.title))
-
-
 
 
 @user_in_voice()
@@ -412,8 +348,6 @@ async def loop(ctx: Context, state: str="") -> None:
         await ctx.send("Invalid argument '" + state + "'.")
 
 
-
-
 def play_next(error: Exception, voice_client: VoiceClient) -> None:
     if error:
         print(error)
@@ -428,14 +362,10 @@ def play_next(error: Exception, voice_client: VoiceClient) -> None:
         voice_client.play(source=queues[voice_client].now_playing.new_source(**FFMPEG_OPTIONS), after=lambda error: play_next(error, voice_client))
 
 
-
-
 async def download_image(url: str) -> BytesIO:
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             return BytesIO(await response.read())
-
-
 
 
 def cancel_downloads(voice_client: VoiceClient = None):
@@ -447,8 +377,6 @@ def cancel_downloads(voice_client: VoiceClient = None):
     else:
         for task in download_tasks[voice_client]:
             task.cancel()
-
-
 
 
 def string_splitter(string: str, delim: str, amount: int):
@@ -468,8 +396,6 @@ def string_splitter(string: str, delim: str, amount: int):
             last_word = str()
 
     yield ret + last_word
-
-
 
 
 bot.run(TOKEN)
