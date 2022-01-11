@@ -329,7 +329,14 @@ async def shutdown(ctx: Context) -> None:
 @check(bot_in_voice)
 @check(in_guild)
 @bot.command(name="skip", brief="Skip songs in queue", help="If no arguments given, the bot skips to the next song. Otherwise, it skips the given amount of songs.")
-async def skip(ctx: Context, many: int = 1) -> None:
+async def skip(ctx: Context, params: str = "1") -> None:
+    many = 1
+    try:
+        many = int(params)
+    except ValueError:
+        await ctx.send(Response.get("BAD_SKIP_REQUEST", ctx.author.mention))
+        return
+
     if many <= 0 or many > len(queues[ctx.voice_client].queue) + 1:
         await ctx.send(Response.get("BAD_SKIP_REQUEST", ctx.author.mention))
         return
