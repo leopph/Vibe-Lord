@@ -261,6 +261,7 @@ async def stop(ctx: Context) -> None:
 async def clear(ctx: Context) -> None:
     cancel_downloads(ctx.voice_client)
     queues[ctx.voice_client].clear()
+    await ctx.send(Response.get("QUEUE_CLEARED", ctx.author.name))
 
 
 @check(playing)

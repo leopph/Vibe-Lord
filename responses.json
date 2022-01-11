@@ -160,5 +160,10 @@
     "DIFFERENT_VOICE_CHANNELS":
     [
         "Hah, you tryna be sneaky, {0}? You have no power over me there! Come and face me in {1}!"
+    ],
+
+    "QUEUE_CLEARED":
+    [
+        "To the traaaaaaaaaaaash!"
     ]
 }
