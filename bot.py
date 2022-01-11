@@ -115,8 +115,8 @@ async def on_command_error(ctx: Context, error: CommandError) -> None:
     if isinstance(error, CheckFailedError):
         await ctx.send(error)
         return
-    log(error.text)
-    await ctx.send(Response.get("UNKNOWN_ERROR "))
+    log(str(error))
+    await ctx.send(Response.get("UNKNOWN_ERROR"))
     
 
 @check(queue_not_empty)
