@@ -23,7 +23,7 @@ TOKEN: Final = os.getenv("DISCORD_TOKEN")
 FFMPEG_OPTIONS: Final = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 URL: Final = re.compile(r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
 
-bot: Final = Bot(command_prefix="$")
+bot: Final = Bot(command_prefix=".")
 
 queues: Final[dict[VoiceClient, SongQueue]] = dict()
 download_tasks: Final[dict[VoiceClient, list[asyncio.Task]]] = dict()
