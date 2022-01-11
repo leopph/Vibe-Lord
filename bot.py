@@ -94,7 +94,7 @@ def queue_not_empty_or_playing(ctx: Context) -> bool:
 
 
 def paused(ctx: Context) -> bool:
-    if ctx.voice_client.is_paused():
+    if not ctx.voice_client.is_paused():
         raise CheckFailedError(Response.get("NOT_PAUSED", ctx.message.author.mention))
     return True
 
