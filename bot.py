@@ -261,7 +261,7 @@ async def stop(ctx: Context) -> None:
 async def clear(ctx: Context) -> None:
     cancel_downloads(ctx.voice_client)
     queues[ctx.voice_client].clear()
-    await ctx.send(Response.get("QUEUE_CLEARED", ctx.author.name))
+    await ctx.send(Response.get("QUEUE_CLEARED"))
 
 
 @check(playing)
@@ -335,11 +335,11 @@ async def skip(ctx: Context, params: str = "1") -> None:
     try:
         many = int(params)
     except ValueError:
-        await ctx.send(Response.get("BAD_SKIP_REQUEST", ctx.author.mention))
+        await ctx.send(Response.get("SKIP_INDEX_NOT_NUM", ctx.author.mention))
         return
 
     if many <= 0 or many > len(queues[ctx.voice_client].queue) + 1:
-        await ctx.send(Response.get("BAD_SKIP_REQUEST", ctx.author.mention))
+        await ctx.send(Response.get("BAD_SKIP_INDEX", ctx.author.mention))
         return
 
     queue = queues[ctx.voice_client]
@@ -376,7 +376,7 @@ async def remove(ctx: Context, index: int, end_index: int = None) -> None:
     removed_songs = queues[ctx.voice_client].remove(index - 1, end_index - 1)
     
     if removed_songs is None:
-        await ctx.send(Response.get("BAD_DELETE_REQUEST", ctx.author.mention))
+        await ctx.send(Response.get("BAD_REMOVE_INDICES", ctx.author.mention))
         return
 
     for song in removed_songs:

@@ -1,100 +1,138 @@
 {
     "QUEUE":
-        [
-            "Alrighty mate, {0} is in queue!",
-            "As you wish bruh, {0} coming up!",
-            "{0} is a great choice, chief! I'll play it for you ASAP.",
-            "Sure thing dude, imma queue {0} for ya!",
-            "A big bag of {0} is on the way!",
-            "Immeasurable amounts of {0}, on the premises!"
-        ],
+    [
+        "Alrighty mate, {0} is in queue!",
+        "As you wish bruh, {0} coming up!",
+        "{0} is a great choice, chief! I'll play it for you ASAP.",
+        "Sure thing dude, imma queue {0} for ya!",
+        "A big bag of {0} is on the way!",
+        "Immeasurable amounts of {0}, on the premises!",
+        "Timeline appended with {0}.",
+        "{0} is queued.",
+        "Queued {0}.",
+        "{0} in the oven.",
+        "I will make sure {0} plays.",
+        "Guess what we're gonna listen to. {0}.",
+        "Chk-chk. {0} loaded.",
+        "{0} added to the queue.",
+        "As it was foretold, {0} will play.",
+        "Aaaaaand... our next contender is {0}!",
+        "{0}? I see you're a man of culture as well.",
+        "{0}? That wouldn't be my first choice but... I'm the bot and... ur the user...",
+        "The things I do for you... {0} added to the queue.",
+        "I shall do as you command and add {0} to the queue.",
+        "Welcome a new member to our little family of vibe songs, {0}!"
+    ],
 
     "NOT_IN_VOICE":
-        [
-            "{0}... Come on... I'm not even in voice...",
-            "{0}... bruh... Seriously? I AM NOT IN A VOICE CHANNEL! HELLO!",
-            "Help! I can't fulfill {0}'s wish, because I'm not in a voice channel!",
-            "My dear Lord, another moron! {0}, mate, am I in any voice channel? No! See a problem with that?"
-        ],
+    [
+        "{0}... Come on... I'm not even in voice...",
+        "{0}... bruh... Seriously? I AM NOT IN A VOICE CHANNEL! HELLO!",
+        "Help! I can't fulfill {0}'s wish, because I'm not in a voice channel!",
+        "My dear Lord, another moron! {0}, mate, am I in any voice channel? No! See a problem with that?",
+        "My hands are tied... I mean... My mouth is sewn, {0}. I need to be in a voice channel for that.",
+        "Oh my, giving commands already? Invite me to a voice channel first, {0}."
+    ],
 
     "ALREADY_IN_VOICE":
-        [
-            "{0}... mah man... Have you eyes? I'M ALREADY IN A VOICE CHANNEL!",
-            "Mayday, mayday! We have a problem! {0} wants me to join, but I'm already here!",
-            "{0}, I regret to inform you that I am unable to fulfill your wish, as I am ALREADY IN THE FUCKING VOICE CHANNEL!"
-        ],
+    [
+        "{0}... mah man... Have you eyes? I'M ALREADY IN A VOICE CHANNEL!",
+        "Mayday, mayday! We have a problem! {0} wants me to join, but I'm already here!",
+        "{0}, I regret to inform you that I am unable to fulfill your wish, as I am ALREADY IN THE FUCKING VOICE CHANNEL!"
+    ],
     
     "NOT_PLAYING":
-        [
-            "{0}... bruuuh... I'm not even playing anything!",
-            "Okay, {0}. I get it. Really. But since I'm not playing anything, I just can't do that. Sorry.",
-            "Right. Look, {0}. We have to talk. I. AM. NOT. PLAYING. A. SINGLE. THING. RIGHT. NOW. OK?"
-        ],
+    [
+        "{0}... bruuuh... I'm not even playing anything!",
+        "Okay, {0}. I get it. Really. But since I'm not playing anything, I just can't do that. Sorry.",
+        "Right. Look, {0}. We have to talk. I. AM. NOT. PLAYING. A. SINGLE. THING. RIGHT. NOW. OK?",
+        "Can you hear music, {0}? I can't. Let's fix that first.",
+        "Currently I am not emitting any sound waves, {0}. How am I supposed to do this for you then?",
+        "We need some music for that first, {0}."
+    ],
 
     "PAUSE":
-        [
-            "Alrighty, I paused this shit for ya.",
-            "Understandable. Have a nice pause.",
-            "Paused.",
-            "Pausing!",
-            "Ah. The sweetness of temporary silence."
-        ],
+    [
+        "Alrighty, I paused this shit for ya.",
+        "Understandable. Have a nice pause.",
+        "Paused.",
+        "Pausing!",
+        "Ah. The sweetness of temporary silence.",
+        "Timeline temporarily halted."
+    ],
 
     "NOT_PAUSED":
-        [
-            "{0}, you fucking cringe, I'm not paused!",
-            "Alright, {0}. I have something to tell you. I'M NOT PAUSED.",
-            "Hey, {0}! Have you ears? I AM NOT PAUSED!",
-            "Okay, {0}. Sure. But I currently am not in the state of being paused."
-        ],
+    [
+        "{0}, you fucking cringe, I'm not paused!",
+        "Alright, {0}. I have something to tell you. I'M NOT PAUSED.",
+        "Hey, {0}! Have you ears? I AM NOT PAUSED!",
+        "Okay, {0}. Sure. But I currently am not in the state of being paused.",
+        "What is dead may... wait that's not right. What is not paused, may never resume, {0}.",
+        "I'm not paused {0}, so there's nothing to resume.",
+        "Timeline restoration is not necessary. Timeline integrity is at 100%, {0}."
+    ],
 
     "RESUME":
-        [
-            "Resuming!",
-            "Resumed.",
-            "Finally! I hate silence!",
-            "Well. That's it for silence...",
-            "Alright, laddies, buckle up! We're resuming!"
-        ],
+    [
+        "Resuming!",
+        "Resumed.",
+        "Finally! I hate silence!",
+        "Well. That's it for silence...",
+        "Alright, laddies, buckle up! We're resuming!",
+        "Back on track bois!"
+    ],
 
     "F":
-        [
-            "{0}, I pay my respects to you.",
-            "Pressing F to pay respect to {0}.",
-            "What a sad day. Let's pay our respects to {0}!",
-            "Respects to {0} I pay."
-        ],
+    [
+        "{0}, I pay my respects to you.",
+        "Pressing F to pay respect to {0}.",
+        "What a sad day. Let's pay our respects to {0}!",
+        "Respects to {0} I pay.",
+        "Fs in the chat for {0}.",
+        "{0}, I grant you the rank of F.",
+        "Such sweet sorrow... F {0}."
+    ],
 
     "GOODBYE":
-        [
-            "Goodbye, fellas!",
-            "See you around!",
-            "Imma head out now.",
-            "I'm leaving you guys. Sorry.",
-            "Oh. My mom called. I gotta go home. Cya!"
-        ],
+    [
+        "Goodbye, fellas!",
+        "See you around!",
+        "Imma head out now.",
+        "I'm leaving you guys. Sorry.",
+        "Oh. My mom called. I gotta go home. Cya!",
+        "My end is nigh..."
+    ],
 
     "SKIP":
-        [
-            "Skipping.",
-            "Skipped!",
-            "Finally! I hated that!",
-            "Yea, I don't like that either.",
-            "Oh no! That was my favorite!"
-        ],
+    [
+        "Skipping.",
+        "Skipped!",
+        "Finally! I hated that!",
+        "Yea, I don't like that either.",
+        "Oh no! That was my favorite!",
+        "I know it's hard to move on sometimes, but you gotta do what you gotta do."
+    ],
 
     "USER_NOT_IN_VOICE":
     [
         "Look... {0}... Bruv... U not in voice, innit?",
         "Hey {0}! I wouldn't mind if you joined the voice channel here first.",
-        "Oh, {0}, you think you're fancy giving me commands from anywhere? GET IN THE VOICE CHANNEL! NOW!"
+        "Oh, {0}, you think you're fancy giving me commands from anywhere? GET IN THE VOICE CHANNEL! NOW!",
+        "La-la-la-la-la, I can't hear you, {0}. You're not in a voice channel!",
+        "I am really offended by your attempt at control when you're not even good enough for a voice channel, {0}.",
+        "Yea... so... can you get in a voice channel first, please, {0}?",
+        "You want me to join you in a voice channel when you're not even in one, {0}?"
     ],
 
     "BAD_TIMESTAMP":
     [
         "Please, {0}, check your seconds. This isn't even valid.",
         "Sure, {0}, why don't I just SKIP THE WHOLE THING?!",
-        "Right. {0}, I'm sorry, but I can't do that. This song is just not ready for that."
+        "Right. {0}, I'm sorry, but I can't do that. This song is just not ready for that.",
+        "I can't find that point in the timeline, {0}. You sure it is meant to exist?",
+        "Destiny has led me to places where that part simply does not exist, {0}.",
+        "I'm sure that part exists somewhere. It's not here tho. Try something else, {0}.",
+        "I think that part is causally separate, {0}."
     ],
 
     "QUEUE_EMPTY":
@@ -112,14 +150,19 @@
         "{0} removed from the queue!",
         "{0} is no longer in the queue!",
         "I just annihilated {0}... Oh god... What have I done...",
-        "{0} HAS BEEN DESTROYED!"
+        "{0} HAS BEEN DESTROYED!",
+        "Timeline rectified. {0} has never existed.",
+        "Ah yes, the sweet scent of annihilation. Bye-bye, {0}."
     ],
 
-    "BAD_DELETE_REQUEST":
+    "BAD_REMOVE_INDICES":
     [
         "That ain't it, {0}. Check them index for me please.",
         "{0}, your wish to annihilate just can't be fulfilled.",
-        "I'm sorry, {0}, but I can't delete that. It don't exist, innit."
+        "I'm sorry, {0}, but I can't delete that. It don't exist, innit.",
+        "What is dead may never die, {0}. Choose something else to remove.",
+        "Those indices are kinda sus, {0}... you sure they're right?",
+        "I'd check those indices if I were you, {0}. Just some friendly advice."
     ],
 
     "SHUFFLE":
@@ -137,33 +180,75 @@
     [
         "I'm sorry, {0}, I could not find anything.",
         "{0}... bruv... Dis not even exist, innit?",
-        "No results found. I'm sorry to have ruined your day, {0}."
+        "No results found. I'm sorry to have ruined your day, {0}.",
+        "Impossible. Perhaps the archives are incomplete, {0}.",
+        "I couldn't find what you were looking for, {0}.",
+        "I have consulted with the oracle, even she cannot find this song, {0}."
     ],
 
-    "BAD_SKIP_REQUEST":
+    "BAD_SKIP_INDEX":
     [
         "That number ain' it, {0}. Try that again, will you?",
-        "I don't think that's valid chief. Hey, look, everyone, {0} messed up!",
-        "Yea... right... Can't do that, {0}."
+        "I don't think that's valid index chief. Hey, look, everyone, {0} messed up!",
+        "Yea... right... Can't do that, {0}. That number not even in the queue!",
+        "Yea, can you repeat that, please, {0}? This time with a correct number.",
+        "Hmm... let me see... I'm sorry, {0}, but that's not on the list.",
+        "That index is incorrect."
+    ],
+
+    "SKIP_INDEX_NOT_NUM":
+    [
+        "Okay, so {0}, I can only do my job if you provide me with numbers.",
+        "{0}... That's not even a number, you sandwich!",
+        "1, 2, 3. Those are numbers, {0}, got it? Try one of those.",
+        "I can't even anymore... Just... Numbers, ok? NUMBERS!",
+        "You went to kindergarden, right, {0}? Gimme some numbers then.",
+        "Let's just say you mistyped that, {0}. You meant to give a number."
     ],
 
     "UNKNOWN_ERROR":
     [
-        "Yea so... Something happened. And it ain good thats fho sho."
+        "Yea so... Something happened. And it ain good thats fho sho.",
+        "I'm not so sure what's going on, but it's certainly not what we expected.",
+        "Albeit pretty convincing, this command did not lead to anything good in the end.",
+        "Something happened! Oh god! How excit.... wait. It was an error. We got an error.",
+        "BLEEP-BLOOP. AN ER-ROR OC-CURED. BLEEP-BLOOP. CAN'T I-DEN-TI-FY.",
+        "Oh lordie! This hurt. I got pinched by an error.",
+        "I, for some reason, could not complete that request.  ¯\\_(ツ)_/¯",
+        "The reasons for why this command has failed remain unknown to humanity forever."
     ],
 
     "DM":
     [
-        "Sorry {0}, I can only do that in servers, and as you can see, this is kinda not a server."
+        "Sorry {0}, I can only do that in servers, and as you can see, this is kinda not a server.",
+        "You dare speak to me that way, {0}! Get your ass in a server!",
+        "Are you, {0}, willing to repeat that in front of witnesses? Like in a server?",
+        "Private chit-chatting is not my strong suit, {0}. Maybe we could talk in public, in a server?",
+        "I am not some kind of personalised ro... roobbb.... rooobooo... Anyways. Go to a server, {0}.",
+        "I like you, {0}. You, me, in a server, now!"
     ],
 
     "DIFFERENT_VOICE_CHANNELS":
     [
-        "Hah, you tryna be sneaky, {0}? You have no power over me there! Come and face me in {1}!"
+        "Hah, you tryna be sneaky, {0}? You have no power over me there! Come and face me in {1}!",
+        "Nice attempt at a putsch, {0}, but my true queen is the {1}!",
+        "Talking behind my back, are we, {0}. Let's go face to face in {1}!",
+        "Requirements not met. {0}, please comply with proximity parameters by joining {1}.",
+        "You, {0}, are not in {1}, while I am. See the problem?",
+        "Access to me is restricted to attendees of {1}, dear {0}. You might want to consider joining.",
+        "As much as I'd like to serve you, {0}, I am currently fulfilling my duties in {1}."
     ],
 
     "QUEUE_CLEARED":
     [
-        "To the traaaaaaaaaaaash!"
+        "To the traaaaaaaaaaaash!",
+        "Queue destruction complete.",
+        "EXTERMINATE!",
+        "Let's throw everything away, shall we?",
+        "Into the abysssssssss...",
+        "Queue cleared. Duty complete.",
+        "The queue is now as clear as my window looking at the... ehm... nevermind.",
+        "And now only I remain.",
+        "The future has just become songless."
     ]
 }
