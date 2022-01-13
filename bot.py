@@ -10,7 +10,8 @@ from discord.ext.commands.core import is_owner
 from discord.ext.commands.errors import CommandError
 from exceptions import CheckFailedError
 from io import BytesIO
-from response import Response
+from pathlib import Path
+from responses import Responses
 from song import Song
 from songqueue import SongQueue
 from typing import Final
@@ -24,26 +25,26 @@ FFMPEG_OPTIONS: Final = {'before_options': '-reconnect 1 -reconnect_streamed 1 -
 URL: Final = re.compile(r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
 
 bot: Final = Bot(command_prefix=".")
-
+responses: Final = Responses(str(Path(__file__).parent.absolute()) + "/res/responses.json")
 queues: Final[dict[VoiceClient, SongQueue]] = dict()
 download_tasks: Final[dict[VoiceClient, list[asyncio.Task]]] = dict()
 
 
 def in_guild(ctx: Context) -> bool:
     if ctx.guild is None:
-        raise CheckFailedError(Response.get("DM"), ctx.author.name)
+        raise CheckFailedError(responses.get("DM"), ctx.author.name)
     return True
 
 
 def member_in_voice(ctx: Context) -> bool:
     if ctx.author.voice is None or ctx.author.voice.channel is None:
-        raise CheckFailedError(Response.get("USER_NOT_IN_VOICE", ctx.author.mention))
+        raise CheckFailedError(responses.get("USER_NOT_IN_VOICE", ctx.author.mention))
     return True
 
 
 def bot_in_voice(ctx: Context) -> bool:
     if ctx.voice_client is None:
-        raise CheckFailedError(Response.get("NOT_IN_VOICE", ctx.author.mention))
+        raise CheckFailedError(responses.get("NOT_IN_VOICE", ctx.author.mention))
     return True
 
 
@@ -52,18 +53,18 @@ def bot_not_in_voice(ctx: Context) -> bool:
         bot_in_voice(ctx)
     except CheckFailedError:
         return True
-    raise CheckFailedError(Response.get("ALREADY_IN_VOICE", ctx.message.author.mention))
+    raise CheckFailedError(responses.get("ALREADY_IN_VOICE", ctx.message.author.mention))
 
 
 def member_and_bot_in_same_voice(ctx: Context) -> bool:
     if bot_in_voice(ctx) and member_in_voice(ctx) and ctx.voice_client.channel == ctx.author.voice.channel:
         return True
-    raise CheckFailedError(Response.get("DIFFERENT_VOICE_CHANNELS", ctx.author.mention, ctx.voice_client.channel.name))
+    raise CheckFailedError(responses.get("DIFFERENT_VOICE_CHANNELS", ctx.author.mention, ctx.voice_client.channel.name))
 
 
 def playing(ctx: Context) -> bool:
     if queues[ctx.voice_client].now_playing is None:
-        raise CheckFailedError(Response.get("NOT_PLAYING", ctx.author.mention))
+        raise CheckFailedError(responses.get("NOT_PLAYING", ctx.author.mention))
     return True
 
 
@@ -82,7 +83,7 @@ def member_in_voice_and_member_and_bot_in_same_voice_or_bot_not_in_voice(ctx: Co
 
 def queue_not_empty(ctx: Context) -> bool:
     if queues[ctx.voice_client].is_empty():
-        raise CheckFailedError(Response.get("QUEUE_EMPTY"))
+        raise CheckFailedError(responses.get("QUEUE_EMPTY"))
     return True
 
 
@@ -95,7 +96,7 @@ def queue_not_empty_or_playing(ctx: Context) -> bool:
 
 def paused(ctx: Context) -> bool:
     if not ctx.voice_client.is_paused():
-        raise CheckFailedError(Response.get("NOT_PAUSED", ctx.message.author.mention))
+        raise CheckFailedError(responses.get("NOT_PAUSED", ctx.message.author.mention))
     return True
 
 
@@ -116,7 +117,7 @@ async def on_command_error(ctx: Context, error: CommandError) -> None:
         await ctx.send(error)
         return
     log(str(error))
-    await ctx.send(Response.get("UNKNOWN_ERROR"))
+    await ctx.send(responses.get("UNKNOWN_ERROR"))
     
 
 @check(queue_not_empty)
@@ -127,7 +128,7 @@ async def on_command_error(ctx: Context, error: CommandError) -> None:
 @bot.command(name="shuffle", help="Randomly reorder the current queue")
 async def shuffle(ctx: Context) -> None:
     queues[ctx.voice_client].shuffle()
-    await ctx.send(Response.get("SHUFFLE"))
+    await ctx.send(responses.get("SHUFFLE"))
 
 
 @check(playing)
@@ -143,7 +144,7 @@ async def seek(ctx: Context, seconds: int) -> None:
         ctx.voice_client.source = queues[ctx.voice_client].now_playing.new_source(**seek_opts)
         return
     
-    await ctx.send(Response.get("BAD_TIMESTAMP", ctx.author.mention))
+    await ctx.send(responses.get("BAD_TIMESTAMP", ctx.author.mention))
 
 
 @check(playing)
@@ -202,13 +203,13 @@ async def youtube(ctx: Context, *, source) -> None:
 
                     queues[ctx.voice_client].add(song)
 
-                    await ctx.send(Response.get("QUEUE", song.title))
+                    await ctx.send(responses.get("QUEUE", song.title))
 
                     if not ctx.voice_client.is_playing() and not ctx.voice_client.is_paused():
                         play_next(None, ctx.voice_client)
 
         except IndexError:
-            await ctx.send(Response.get("NO_RESULT", ctx.author.mention))
+            await ctx.send(responses.get("NO_RESULT", ctx.author.mention))
 
 
     if not ctx.voice_client:
@@ -261,7 +262,7 @@ async def stop(ctx: Context) -> None:
 async def clear(ctx: Context) -> None:
     cancel_downloads(ctx.voice_client)
     queues[ctx.voice_client].clear()
-    await ctx.send(Response.get("QUEUE_CLEARED"))
+    await ctx.send(responses.get("QUEUE_CLEARED"))
 
 
 @check(playing)
@@ -272,7 +273,7 @@ async def clear(ctx: Context) -> None:
 @bot.command(name="pause", help="Pause playback")
 async def pause(ctx: Context) -> None:
     ctx.voice_client.pause()
-    await ctx.send(Response.get("PAUSE"))
+    await ctx.send(responses.get("PAUSE"))
 
 
 @check(paused)
@@ -283,7 +284,7 @@ async def pause(ctx: Context) -> None:
 @bot.command(name="resume", help="Resume playback")
 async def resume(ctx: Context) -> None:
     ctx.voice_client.resume()
-    await ctx.send(Response.get("RESUME"))
+    await ctx.send(responses.get("RESUME"))
 
 
 @check(member_in_voice)
@@ -310,7 +311,7 @@ async def disconnect(ctx: Context) -> None:
 
 @bot.command(name="f", aliases=["F"], help="Pay respects")
 async def ef(ctx: Context) -> None:
-    await ctx.send(Response.get("F", ctx.message.author.mention))
+    await ctx.send(responses.get("F", ctx.message.author.mention))
 
 
 @is_owner()
@@ -320,7 +321,7 @@ async def shutdown(ctx: Context) -> None:
     for client in ctx.bot.voice_clients:
         await client.disconnect()
 
-    await ctx.send(Response.get("GOODBYE"))
+    await ctx.send(responses.get("GOODBYE"))
     await ctx.bot.logout()
 
 
@@ -335,11 +336,11 @@ async def skip(ctx: Context, params: str = "1") -> None:
     try:
         many = int(params)
     except ValueError:
-        await ctx.send(Response.get("SKIP_INDEX_NOT_NUM", ctx.author.mention))
+        await ctx.send(responses.get("SKIP_INDEX_NOT_NUM", ctx.author.mention))
         return
 
     if many <= 0 or many > len(queues[ctx.voice_client].queue) + 1:
-        await ctx.send(Response.get("BAD_SKIP_INDEX", ctx.author.mention))
+        await ctx.send(responses.get("BAD_SKIP_INDEX", ctx.author.mention))
         return
 
     queue = queues[ctx.voice_client]
@@ -360,7 +361,7 @@ async def skip(ctx: Context, params: str = "1") -> None:
     # If we're not looping, this will skip one more track before restarting playback, playing exactly the track we skipped to
     # This is because how we drained the tracks above
     ctx.voice_client.stop()
-    await ctx.send(Response.get("SKIP"))
+    await ctx.send(responses.get("SKIP"))
 
 
 @check(queue_not_empty)
@@ -376,11 +377,11 @@ async def remove(ctx: Context, index: int, end_index: int = None) -> None:
     removed_songs = queues[ctx.voice_client].remove(index - 1, end_index - 1)
     
     if removed_songs is None:
-        await ctx.send(Response.get("BAD_REMOVE_INDICES", ctx.author.mention))
+        await ctx.send(responses.get("BAD_REMOVE_INDICES", ctx.author.mention))
         return
 
     for song in removed_songs:
-        await ctx.send(Response.get("SONG_REMOVED", song.title))
+        await ctx.send(responses.get("SONG_REMOVED", song.title))
 
 
 @check(member_and_bot_in_same_voice)
