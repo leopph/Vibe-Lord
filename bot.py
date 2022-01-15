@@ -32,7 +32,7 @@ download_tasks: Final[dict[VoiceClient, list[asyncio.Task]]] = dict()
 
 def in_guild(ctx: Context) -> bool:
     if ctx.guild is None:
-        raise CheckFailedError(responses.get("DM"), ctx.author.name)
+        raise CheckFailedError(responses.get("DM", ctx.author.name))
     return True
 
 
