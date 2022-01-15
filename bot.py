@@ -160,9 +160,8 @@ async def now_paying(ctx: Context) -> None:
 @check(in_guild)
 @bot.command(name="queue", aliases=["q", "que", "queueue"], help="Show songs in queue")
 async def show_queue(ctx: Context):
-    message =   (":arrows_counterclockwise: " if queues[ctx.voice_client].loop else "") +\
-                "--- " + queues[ctx.voice_client].now_playing.title + " ---" +\
-                (" :arrows_counterclockwise:" if queues[ctx.voice_client].loop else "") + "\n" +\
+    np_symbol: Final = "🔄" if queues[ctx.voice_client].loop else "▶"
+    message =   np_symbol + " " + queues[ctx.voice_client].now_playing.title + " " + np_symbol + "\n" +\
                 "\n".join([str(index + 1) + ". " + song.title for index, song in enumerate(queues[ctx.voice_client].queue)])
 
     for sub_message in string_splitter(message, "\n", 2000):
