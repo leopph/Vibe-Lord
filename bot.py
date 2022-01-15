@@ -311,7 +311,7 @@ async def disconnect(ctx: Context) -> None:
 
 @bot.command(name="f", aliases=["F"], help="Pay respects")
 async def ef(ctx: Context) -> None:
-    await ctx.send(responses.get("F", ctx.message.author.mention))
+    await ctx.send(responses.get("F", ctx.author.mention if ctx.guild is not None else ctx.author.name))
 
 
 @is_owner()
