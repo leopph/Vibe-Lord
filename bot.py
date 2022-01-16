@@ -384,7 +384,7 @@ async def remove(ctx: Context, index: int, end_index: int = None) -> None:
 @check(member_in_voice)
 @check(bot_in_voice)
 @check(in_guild)
-@bot.command(name="loop", help="[WIP] Check or set whether the bot is looping a track")
+@bot.command(name="loop", help="Check or set whether the bot is looping a track")
 async def loop(ctx: Context, state: str="") -> None:
     if state == "":
         await ctx.send("Looping is currently " + ("on" if queues[ctx.guild.id].loop else "off") + ".")
