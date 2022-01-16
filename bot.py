@@ -216,16 +216,13 @@ async def youtube(ctx: Context, *, source) -> None:
         queues[ctx.voice_client] = SongQueue()
         download_tasks[ctx.voice_client] = list()
 
-
     task = bot.loop.create_task(add_to_queue())
     download_tasks[ctx.voice_client].append(task)
 
     try:
         await task
-
     except asyncio.CancelledError:
         pass
-
     else:
         download_tasks[ctx.voice_client].remove(task)
 
@@ -238,7 +235,7 @@ async def youtube(ctx: Context, *, source) -> None:
 @bot.command(name="stop", brief="Stop music", help="Stop playback. This removes all songs from the queue, and stops background queueing processes.")
 async def stop(ctx: Context) -> None:
     # Stop downloads for this queue and clear it
-    cancel_downloads(ctx.voice_client)
+    stop_downloads_server(ctx.voice_client)
     queues[ctx.voice_client].clear()
     # Save loop state and turn looping off
     loop = queues[ctx.voice_client].loop
@@ -259,7 +256,7 @@ async def stop(ctx: Context) -> None:
 @check(in_guild)
 @bot.command(name="clear", brief="Clear queue", help="Remove all the songs from the queue. This does not stop current playback, but stops background queueing processes.")
 async def clear(ctx: Context) -> None:
-    cancel_downloads(ctx.voice_client)
+    stop_downloads_server(ctx.voice_client)
     queues[ctx.voice_client].clear()
     await ctx.send(responses.get("QUEUE_CLEARED"))
 
@@ -302,7 +299,7 @@ async def connect(ctx: Context) -> None:
 @check(in_guild)
 @bot.command(name="disconnect", aliases=["dc"], brief="Disconnect from voice channel", help="Disconnect from the current voice channel. This stops all background queueing processes, and clears the server queue.")
 async def disconnect(ctx: Context) -> None:
-    cancel_downloads(ctx.voice_client)
+    stop_downloads_server(ctx.voice_client)
     del download_tasks[ctx.voice_client]
     del queues[ctx.voice_client]
     await ctx.voice_client.disconnect()
@@ -316,7 +313,7 @@ async def ef(ctx: Context) -> None:
 @is_owner()
 @bot.command(name="shutdown", aliases=["sd, shtdwn, exit"], help="Shut the bot down")
 async def shutdown(ctx: Context) -> None:
-    cancel_downloads()  
+    stop_downloads_all()
     for client in ctx.bot.voice_clients:
         await client.disconnect()
 
@@ -424,15 +421,17 @@ async def download_image(url: str) -> BytesIO:
             return BytesIO(await response.read())
 
 
-def cancel_downloads(voice_client: VoiceClient = None):
-    if voice_client is None:
-        for task_list in download_tasks.values():
-            for task in task_list:
-                task.cancel()
-    
-    else:
-        for task in download_tasks[voice_client]:
+def stop_downloads_server(voice_client: VoiceClient) -> None:
+    for task in download_tasks[voice_client]:
+        task.cancel()
+    download_tasks[voice_client].clear()
+
+
+def stop_downloads_all() -> None:
+    for tasks in download_tasks.values():
+        for task in tasks:
             task.cancel()
+    download_tasks.clear()
 
 
 def string_splitter(string: str, delim: str, amount: int):
