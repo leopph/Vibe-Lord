@@ -1,13 +1,13 @@
 import aiohttp
 import asyncio
+import discord
+import discord.ext.commands.errors
 import dotenv
 import os
 import re
 from datetime import datetime
-from discord import VoiceClient, File
 from discord.ext.commands import Bot, Context, check
 from discord.ext.commands.core import is_owner
-from discord.ext.commands.errors import CommandError
 from exceptions import CheckFailedError
 from io import BytesIO
 from pathlib import Path
@@ -26,8 +26,8 @@ URL: Final = re.compile(r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]
 
 bot: Final = Bot(command_prefix=".")
 responses: Final = Responses(str(Path(__file__).parent.absolute()) + "/res/responses.json")
-queues: Final[dict[VoiceClient, SongQueue]] = dict()
-download_tasks: Final[dict[VoiceClient, list[asyncio.Task]]] = dict()
+queues: Final[dict[int, SongQueue]] = dict()
+download_tasks: Final[dict[int, list[asyncio.Task]]] = dict()
 
 
 def in_guild(ctx: Context) -> bool:
@@ -63,7 +63,7 @@ def member_and_bot_in_same_voice(ctx: Context) -> bool:
 
 
 def playing(ctx: Context) -> bool:
-    if queues[ctx.voice_client].now_playing is None:
+    if queues[ctx.guild.id].now_playing is None:
         raise CheckFailedError(responses.get("NOT_PLAYING", ctx.author.mention))
     return True
 
@@ -82,7 +82,7 @@ def member_in_voice_and_member_and_bot_in_same_voice_or_bot_not_in_voice(ctx: Co
 
 
 def queue_not_empty(ctx: Context) -> bool:
-    if queues[ctx.voice_client].is_empty():
+    if queues[ctx.guild.id].is_empty():
         raise CheckFailedError(responses.get("QUEUE_EMPTY"))
     return True
 
@@ -112,7 +112,7 @@ async def on_ready():
 
 
 @bot.event
-async def on_command_error(ctx: Context, error: CommandError) -> None:
+async def on_command_error(ctx: Context, error: discord.ext.commands.errors.CommandError) -> None:
     if isinstance(error, CheckFailedError):
         await ctx.send(error)
         return
@@ -127,7 +127,7 @@ async def on_command_error(ctx: Context, error: CommandError) -> None:
 @check(in_guild)
 @bot.command(name="shuffle", help="Randomly reorder the current queue")
 async def shuffle(ctx: Context) -> None:
-    queues[ctx.voice_client].shuffle()
+    queues[ctx.guild.id].shuffle()
     await ctx.send(responses.get("SHUFFLE"))
 
 
@@ -138,10 +138,10 @@ async def shuffle(ctx: Context) -> None:
 @check(in_guild)
 @bot.command(name="seek", help="Skip to a certain part of the current song")
 async def seek(ctx: Context, seconds: int) -> None:   
-    if queues[ctx.voice_client].now_playing.length >= seconds >= 0:
+    if queues[ctx.guild.id].now_playing.length >= seconds >= 0:
         seek_opts = FFMPEG_OPTIONS.copy()
         seek_opts["before_options"] = FFMPEG_OPTIONS["before_options"] + f" -ss {seconds}"
-        ctx.voice_client.source = queues[ctx.voice_client].now_playing.new_source(**seek_opts)
+        ctx.voice_client.source = queues[ctx.guild.id].now_playing.new_source(**seek_opts)
         return
     
     await ctx.send(responses.get("BAD_TIMESTAMP", ctx.author.mention))
@@ -152,7 +152,7 @@ async def seek(ctx: Context, seconds: int) -> None:
 @check(in_guild)
 @bot.command(name="nowplaying", aliases=["np"], help="Show the current song")
 async def now_paying(ctx: Context) -> None:
-    await ctx.send(f"Now playing: {queues[ctx.voice_client].now_playing.title}", file=File(queues[ctx.voice_client].now_playing.image, "cover.jpg"))
+    await ctx.send(f"Now playing: {queues[ctx.guild.id].now_playing.title}", file=discord.File(queues[ctx.guild.id].now_playing.image, "cover.jpg"))
 
 
 @check(queue_not_empty_or_playing)
@@ -160,9 +160,9 @@ async def now_paying(ctx: Context) -> None:
 @check(in_guild)
 @bot.command(name="queue", aliases=["q", "que", "queueue"], help="Show songs in queue")
 async def show_queue(ctx: Context):
-    np_symbol: Final = "🔄" if queues[ctx.voice_client].loop else "▶"
-    message =   np_symbol + " " + queues[ctx.voice_client].now_playing.title + " " + np_symbol + "\n" +\
-                "\n".join([str(index + 1) + ". " + song.title for index, song in enumerate(queues[ctx.voice_client].queue)])
+    np_symbol: Final = "🔄" if queues[ctx.guild.id].loop else "▶"
+    message =   np_symbol + " " + queues[ctx.guild.id].now_playing.title + " " + np_symbol + "\n" +\
+                "\n".join([str(index + 1) + ". " + song.title for index, song in enumerate(queues[ctx.guild.id].queue)])
 
     for sub_message in string_splitter(message, "\n", 2000):
         await ctx.send(sub_message)
@@ -200,7 +200,7 @@ async def youtube(ctx: Context, *, source) -> None:
                 if video is not None: # TODO kell else ág rendesen lekezelni az esetet, ha invalid az egész link
                     song = Song(video["title"], video["duration"], video["url"], await download_image(video["thumbnails"][-1]["url"]))
 
-                    queues[ctx.voice_client].add(song)
+                    queues[ctx.guild.id].add(song)
 
                     await ctx.send(responses.get("QUEUE", song.title))
 
@@ -213,18 +213,18 @@ async def youtube(ctx: Context, *, source) -> None:
 
     if not ctx.voice_client:
         await ctx.message.author.voice.channel.connect()
-        queues[ctx.voice_client] = SongQueue()
-        download_tasks[ctx.voice_client] = list()
+        queues[ctx.guild.id] = SongQueue()
+        download_tasks[ctx.guild.id] = list()
 
     task = bot.loop.create_task(add_to_queue())
-    download_tasks[ctx.voice_client].append(task)
+    download_tasks[ctx.guild.id].append(task)
 
     try:
         await task
     except asyncio.CancelledError:
         pass
     else:
-        download_tasks[ctx.voice_client].remove(task)
+        download_tasks[ctx.guild.id].remove(task)
 
 
 @check(playing)
@@ -235,15 +235,15 @@ async def youtube(ctx: Context, *, source) -> None:
 @bot.command(name="stop", brief="Stop music", help="Stop playback. This removes all songs from the queue, and stops background queueing processes.")
 async def stop(ctx: Context) -> None:
     # Stop downloads for this queue and clear it
-    stop_downloads_server(ctx.voice_client)
-    queues[ctx.voice_client].clear()
+    stop_downloads_server(ctx.guild.id)
+    queues[ctx.guild.id].clear()
     # Save loop state and turn looping off
-    loop = queues[ctx.voice_client].loop
-    queues[ctx.voice_client].loop = False
+    loop = queues[ctx.guild.id].loop
+    queues[ctx.guild.id].loop = False
     # Since looping is off and the queue is empty, this will set now_playing to None
-    queues[ctx.voice_client].next()
+    queues[ctx.guild.id].next()
     # Restore loop state
-    queues[ctx.voice_client].loop = loop
+    queues[ctx.guild.id].loop = loop
     # Now we stop playback and invoke the callback, which will not start a new song
     # because now_playing is now None and the queue is empty
     ctx.voice_client.stop()
@@ -256,8 +256,8 @@ async def stop(ctx: Context) -> None:
 @check(in_guild)
 @bot.command(name="clear", brief="Clear queue", help="Remove all the songs from the queue. This does not stop current playback, but stops background queueing processes.")
 async def clear(ctx: Context) -> None:
-    stop_downloads_server(ctx.voice_client)
-    queues[ctx.voice_client].clear()
+    stop_downloads_server(ctx.guild.id)
+    queues[ctx.guild.id].clear()
     await ctx.send(responses.get("QUEUE_CLEARED"))
 
 
@@ -289,8 +289,8 @@ async def resume(ctx: Context) -> None:
 @bot.command(name="connect", aliases=["c"], help="Connect to voice channel")
 async def connect(ctx: Context) -> None:
     await ctx.message.author.voice.channel.connect()
-    queues[ctx.voice_client] = SongQueue()
-    download_tasks[ctx.voice_client] = list()
+    queues[ctx.guild.id] = SongQueue()
+    download_tasks[ctx.guild.id] = list()
 
 
 @check(member_and_bot_in_same_voice)
@@ -299,9 +299,9 @@ async def connect(ctx: Context) -> None:
 @check(in_guild)
 @bot.command(name="disconnect", aliases=["dc"], brief="Disconnect from voice channel", help="Disconnect from the current voice channel. This stops all background queueing processes, and clears the server queue.")
 async def disconnect(ctx: Context) -> None:
-    stop_downloads_server(ctx.voice_client)
-    del download_tasks[ctx.voice_client]
-    del queues[ctx.voice_client]
+    stop_downloads_server(ctx.guild.id)
+    del download_tasks[ctx.guild.id]
+    del queues[ctx.guild.id]
     await ctx.voice_client.disconnect()
 
 
@@ -335,11 +335,11 @@ async def skip(ctx: Context, params: str = "1") -> None:
         await ctx.send(responses.get("SKIP_INDEX_NOT_NUM", ctx.author.mention))
         return
 
-    if many <= 0 or many > len(queues[ctx.voice_client].queue) + 1:
+    if many <= 0 or many > len(queues[ctx.guild.id].queue) + 1:
         await ctx.send(responses.get("BAD_SKIP_INDEX", ctx.author.mention))
         return
 
-    queue = queues[ctx.voice_client]
+    queue = queues[ctx.guild.id]
     # Save loop state and turn looping off
     loop = queue.loop
     queue.loop = False
@@ -348,7 +348,7 @@ async def skip(ctx: Context, params: str = "1") -> None:
     # If not, we drain one less
     count = many if loop else many - 1
     for _ in range(count):
-        queues[ctx.voice_client].next()
+        queues[ctx.guild.id].next()
     
     # Restore loop state
     queue.loop = loop
@@ -370,7 +370,7 @@ async def remove(ctx: Context, index: int, end_index: int = None) -> None:
     if end_index is None:
         end_index = index
 
-    removed_songs = queues[ctx.voice_client].remove(index - 1, end_index - 1)
+    removed_songs = queues[ctx.guild.id].remove(index - 1, end_index - 1)
     
     if removed_songs is None:
         await ctx.send(responses.get("BAD_REMOVE_INDICES", ctx.author.mention))
@@ -387,32 +387,32 @@ async def remove(ctx: Context, index: int, end_index: int = None) -> None:
 @bot.command(name="loop", help="[WIP] Check or set whether the bot is looping a track")
 async def loop(ctx: Context, state: str="") -> None:
     if state == "":
-        await ctx.send("Looping is currently " + ("on" if queues[ctx.voice_client].loop else "off") + ".")
+        await ctx.send("Looping is currently " + ("on" if queues[ctx.guild.id].loop else "off") + ".")
 
     elif state.lower() == "on":
-        queues[ctx.voice_client].loop = True
+        queues[ctx.guild.id].loop = True
         await ctx.send("Looping enabled.")
 
     elif state.lower() == "off":
-        queues[ctx.voice_client].loop = False
+        queues[ctx.guild.id].loop = False
         await ctx.send("Looping disabled.")
 
     else:
         await ctx.send("Invalid argument '" + state + "'.")
 
 
-def play_next(error: Exception, voice_client: VoiceClient) -> None:
+def play_next(error: Exception, voice_client: discord.VoiceClient) -> None:
     if error:
         print(error)
         return
 
-    if voice_client not in queues:
+    if voice_client.guild.id not in queues:
         return
 
-    queues[voice_client].next()
+    queues[voice_client.guild.id].next()
         
-    if queues[voice_client].now_playing:      
-        voice_client.play(source=queues[voice_client].now_playing.new_source(**FFMPEG_OPTIONS), after=lambda error: play_next(error, voice_client))
+    if queues[voice_client.guild.id].now_playing:      
+        voice_client.play(source=queues[voice_client.guild.id].now_playing.new_source(**FFMPEG_OPTIONS), after=lambda error: play_next(error, voice_client))
 
 
 async def download_image(url: str) -> BytesIO:
@@ -421,10 +421,10 @@ async def download_image(url: str) -> BytesIO:
             return BytesIO(await response.read())
 
 
-def stop_downloads_server(voice_client: VoiceClient) -> None:
-    for task in download_tasks[voice_client]:
+def stop_downloads_server(guild_id: int) -> None:
+    for task in download_tasks[guild_id]:
         task.cancel()
-    download_tasks[voice_client].clear()
+    download_tasks[guild_id].clear()
 
 
 def stop_downloads_all() -> None:
