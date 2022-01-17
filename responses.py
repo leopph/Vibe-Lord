@@ -4,8 +4,8 @@ import random
 
 class Responses:
     def __init__(self, path: str) -> None:
-        with open(path) as responses:
-            self.__responses: dict[str, list[str]] = json.load(responses)
+        with open(path, encoding="utf-8") as fh:
+            self.__responses: dict[str, list[str]] = json.load(fh)
 
 
     def get(self, cat: str, *args) -> str: 
