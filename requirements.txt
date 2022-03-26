@@ -1,0 +1,6 @@
+aiohttp
+discord.py
+discord.py-stubs
+PyNaCl
+python-dotenv
+youtube-dl
